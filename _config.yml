@@ -12,6 +12,6 @@ color-scheme: dark
 layout: default
 navigation:
   - name: Readme
-    link: /README.html
+    link: /README.md
   - name: File Format
     link: /root/file_format.md
