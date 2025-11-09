@@ -1,3 +1,7 @@
+---
+layout: default
+title: Snowflake
+---
 
 [Home](./index.md)
 
