@@ -5,7 +5,7 @@ title: Snowflake
 
 [Home](./index.md)
 
-#### File Formats
+### File Formats
 
 File for loading data. Such as a CSV file which is pipe delimited.
 
@@ -17,7 +17,7 @@ create file format CSV_COMMA_LF_HEADER
     skip_header = 1 
 ;
 ```
-#### Additional settings are:
+### Additional settings are:
 
 ```sql
 error_on_column_count_mismatch -- Can't be used with skip_header
