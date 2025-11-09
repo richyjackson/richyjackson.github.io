@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 ### About me
 
 Hi, I'm Richard Jackson. I've been working with data for over a decade within the banking sector. My experiences span, analysis, data engineering, data migration, PowerBI development & Snowflake data cloud.
