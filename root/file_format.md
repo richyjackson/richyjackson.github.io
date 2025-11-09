@@ -1,10 +1,5 @@
----
-layout: default
----
 
 [Link to another page](./index.md)
-
-[Snowflake SQL](wiki/Test)
 
 #### File Formats
 
