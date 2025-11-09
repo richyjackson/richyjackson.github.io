@@ -1,5 +1,5 @@
 
-[Link to another page](./index.md)
+[Home](index.md)
 
 #### File Formats
 
