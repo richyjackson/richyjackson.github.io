@@ -1,15 +1,3 @@
-remote_theme: vaibhavvikas/jekyll-theme-minimalistic
-platforms:
-  - name: GitHub
-    icon: <i class="fa-brands fa-github"></i>
-    link: https://github.com/vaibhavvikas
-  - name: LinkedIn
-    icon: <i class="fa-brands fa-linkedin"></i>
-    link: https://www.linkedin.com/in/vaibhavvikas
-color-scheme: dark
-layout: default
-navigation:
-  - name: Home
-    link: /README.md
-  - name: File Format
-    link: /root/file_format.html
+title: Richard Jackson WIKI
+description: Useful code for data engineers, analysts and scientists
+theme: jekyll.theme.minimal
