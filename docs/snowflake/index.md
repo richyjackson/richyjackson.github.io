@@ -13,6 +13,4 @@ www
 
 ### Code snippets & notes
 
-www
-www
-www
+[Snowflake SQL](./docs/snowflake/file_format.md)
