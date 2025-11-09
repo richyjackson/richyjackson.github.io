@@ -1,4 +1,9 @@
-add home
+---
+layout: default
+title: Snowflake
+---
+
+[Home](../../index.md)
 
 ### Useful Snowflake links
 
