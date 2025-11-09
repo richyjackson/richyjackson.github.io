@@ -2,6 +2,10 @@
 layout: default
 ---
 
+[Link to another page](./index.html)
+
+[Snowflake SQL](wiki/Test)
+
 #### File Formats
 
 File for loading data. Such as a CSV file which is pipe delimited.
