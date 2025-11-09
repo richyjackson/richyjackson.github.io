@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 #### File Formats
 
 File for loading data. Such as a CSV file which is pipe delimited.
