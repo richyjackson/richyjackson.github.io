@@ -1,3 +1,5 @@
 #### Welcome to the richyjackson.github.io wiki!
 
-[[Data Metric Functions]]
+[File Formats](./root/file_format.md)
+
+[Snowflake SQL](wiki/Test)
