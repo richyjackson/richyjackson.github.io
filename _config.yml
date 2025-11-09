@@ -10,3 +10,8 @@ platforms:
     link: /root/file_format.md
 color-scheme: dark
 layout: default
+navigation:
+  - name: Readme
+    link: ./README.html
+  - name: Another Page
+    link: ./root/another-page.html
