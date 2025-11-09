@@ -6,4 +6,5 @@ platforms:
   - name: LinkedIn
     icon: <i class="fa-brands fa-linkedin"></i>
     link: https://www.linkedin.com/in/vaibhavvikas
-color-scheme: auto/light/dark
+color-scheme: dark
+layout: default
