@@ -1,3 +1,6 @@
+---
+layout: default
+---
 ### BI Developer WIKI
 
 ## About Me
