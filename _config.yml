@@ -6,12 +6,10 @@ platforms:
   - name: LinkedIn
     icon: <i class="fa-brands fa-linkedin"></i>
     link: https://www.linkedin.com/in/vaibhavvikas
-  - name: File Format
-    link: /root/file_format.md
 color-scheme: dark
 layout: default
 navigation:
-  - name: Readme
-    link: /README.md
+  - name: Home
+    link: /README.html
   - name: File Format
     link: /root/file_format.html
