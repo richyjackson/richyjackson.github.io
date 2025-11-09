@@ -14,4 +14,4 @@ navigation:
   - name: Readme
     link: /README.md
   - name: File Format
-    link: /root/file_format.md
+    link: /root/file_format.html
