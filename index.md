@@ -2,4 +2,4 @@
 
 [File Formats](./root/file_format.md)
 
-[Snowflake SQL](wiki/Test)
+[Snowflake SQL](/wiki/Test)
