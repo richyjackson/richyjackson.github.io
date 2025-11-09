@@ -10,4 +10,4 @@ Hi, I’m Richard Jackson. I’ve spent over a decade working with data in the b
 
 This site serves as a working library of useful code snippets and techniques I’ve collected throughout my career.
 
-[Snowflake SQL](./docs/snowflake/file_format.md)
+[Snowflake](./docs/snowflake/index.md)
