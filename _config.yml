@@ -13,5 +13,5 @@ layout: default
 navigation:
   - name: Readme
     link: ./README.html
-  - name: Another Page
-    link: ./root/another-page.html
+  - name: File Format
+    link: ./root/file_format.md
