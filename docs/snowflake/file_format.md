@@ -3,7 +3,7 @@ layout: default
 title: Snowflake
 ---
 
-[Home](../index.md)
+[Home](.../index.md)
 
 #### File Formats
 
