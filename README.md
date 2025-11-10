@@ -5,3 +5,5 @@ Hi, I’m Richard Jackson. I’ve spent over a decade working with data in the b
 This site serves as a working library of useful code snippets and techniques I’ve collected throughout my career.
 
 Please find my github pages site here: [BI Developer WIKI](https://richyjackson.github.io/)
+
+The site is built in github pages using the Jekyll template Cayman: [Jekyll Theme](https://github.com/pages-themes/cayman)
