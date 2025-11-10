@@ -14,6 +14,7 @@ www
 ### Objects
 
 [File Format](./file_format.md)
+[Data Metric Functions](./data_metric_function.md)
 
 ### Functions
 
