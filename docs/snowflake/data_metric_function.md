@@ -14,7 +14,7 @@ Snowflake provide a large number of pre-built DMFs as follows:
 - [BLANK_COUNT](https://docs.snowflake.com/en/sql-reference/functions/dmf_blank_count)
 - [BLANK_PERCENT](https://docs.snowflake.com/en/sql-reference/functions/dmf_blank_percent)
 - [NULL_COUNT](https://docs.snowflake.com/en/sql-reference/functions/dmf_null_count)
-- [NULL_PERCENT](https://docs.snowflake.com/en/sql-reference/functions/dmf_null_percent) |
+- [NULL_PERCENT](https://docs.snowflake.com/en/sql-reference/functions/dmf_null_percent)
 - [FRESHNESS](https://docs.snowflake.com/en/sql-reference/functions/dmf_freshness) (Freshness according to a timestamp column or the most recent DML operation)
 - [DATA_METRIC_SCHEDULE_TIME](https://docs.snowflake.com/en/sql-reference/functions/dmf_data_metric_schedule_time)
 - [AVG](https://docs.snowflake.com/en/sql-reference/functions/dmf_avg)
