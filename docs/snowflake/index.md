@@ -11,6 +11,10 @@ www
 www
 www
 
-### Code snippets & notes
+### Objects
 
 [File Format](./file_format.md)
+
+### Functions
+
+[COPY INTO](./copy_into.md)
