@@ -11,13 +11,20 @@ To automate data quality checks you must firstly:
 - Assocate the DMF with the table or view
 ### System DMFs
 Snowflake provide a large number of pre-built DMFs as follows:
-| Category   | System DMF |
-|------------|------------|
-| Accuracy   | [BLANK_COUNT](https://docs.snowflake.com/en/sql-reference/functions/dmf_blank_count)<br>[BLANK_PERCENT](https://docs.snowflake.com/en/sql-reference/functions/dmf_blank_percent)<br>[NULL_COUNT](https://docs.snowflake.com/en/sql-reference/functions/dmf_null_count)<br>[NULL_PERCENT](https://docs.snowflake.com/en/sql-reference/functions/dmf_null_percent) |
-| Freshness  | [FRESHNESS](https://docs.snowflake.com/en/sql-reference/functions/dmf_freshness) (Freshness according to a timestamp column or the most recent DML operation)<br>[DATA_METRIC_SCHEDULE_TIME](https://docs.snowflake.com/en/sql-reference/functions/dmf_data_metric_schedule_time) |
-| Statistics | [AVG](https://docs.snowflake.com/en/sql-reference/functions/dmf_avg)<br>[MAX](https://docs.snowflake.com/en/sql-reference/functions/dmf_max)<br>[MIN](https://docs.snowflake.com/en/sql-reference/functions/dmf_min)<br>[STDDEV](https://docs.snowflake.com/en/sql-reference/functions/dmf_stddev) |
-| Uniqueness | [ACCEPTED_VALUES](https://docs.snowflake.com/en/sql-reference/functions/dmf_accepted_values) (ensure values match agreed list) |
-| Volume     | [ROW_COUNT](https://docs.snowflake.com/en/sql-reference/functions/dmf_row_count)<br>[UNIQUE_COUNT](https://docs.snowflake.com/en/sql-reference/functions/dmf_unique_count)<br>[DUPLICATE_COUNT](https://docs.snowflake.com/en/sql-reference/functions/dmf_duplicate_count) |
+- [BLANK_COUNT](https://docs.snowflake.com/en/sql-reference/functions/dmf_blank_count)
+- [BLANK_PERCENT](https://docs.snowflake.com/en/sql-reference/functions/dmf_blank_percent)
+- [NULL_COUNT](https://docs.snowflake.com/en/sql-reference/functions/dmf_null_count)
+- [NULL_PERCENT](https://docs.snowflake.com/en/sql-reference/functions/dmf_null_percent) |
+- [FRESHNESS](https://docs.snowflake.com/en/sql-reference/functions/dmf_freshness) (Freshness according to a timestamp column or the most recent DML operation)
+- [DATA_METRIC_SCHEDULE_TIME](https://docs.snowflake.com/en/sql-reference/functions/dmf_data_metric_schedule_time)
+- [AVG](https://docs.snowflake.com/en/sql-reference/functions/dmf_avg)
+- [MAX](https://docs.snowflake.com/en/sql-reference/functions/dmf_max)
+- [MIN](https://docs.snowflake.com/en/sql-reference/functions/dmf_min)
+- [STDDEV](https://docs.snowflake.com/en/sql-reference/functions/dmf_stddev)
+- [ACCEPTED_VALUES](https://docs.snowflake.com/en/sql-reference/functions/dmf_accepted_values) (ensure values match agreed list)
+- [ROW_COUNT](https://docs.snowflake.com/en/sql-reference/functions/dmf_row_count)
+- [UNIQUE_COUNT](https://docs.snowflake.com/en/sql-reference/functions/dmf_unique_count)
+- [DUPLICATE_COUNT](https://docs.snowflake.com/en/sql-reference/functions/dmf_duplicate_count)
 ### Schedule the DMF to run
 A schedule is set against a table which is to apply to all functions
 For processing via the medallion architecture, TRIGGER ON CHANGES is preferred
