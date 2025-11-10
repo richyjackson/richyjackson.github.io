@@ -7,15 +7,14 @@ title: Snowflake
 
 ### Useful Snowflake links
 
-www
-www
-www
+- [Snowflake Documentation](https://docs.snowflake.com/en/guides)
+- [Snowflake Community](https://learn.snowflake.com/dashboard)
 
 ### Objects
 
-[File Format](./file_format.md)
-[Data Metric Functions](./data_metric_function.md)
+- [File Format](./file_format.md)
 
 ### Functions
 
-[COPY INTO](./copy_into.md)
+- [COPY INTO](./copy_into.md)
+- [Data Metric Functions](./data_metric_function.md)
