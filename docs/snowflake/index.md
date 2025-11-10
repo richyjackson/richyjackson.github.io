@@ -17,4 +17,8 @@ title: Snowflake
 ### Functions
 
 - [COPY INTO](./copy_into.md)
+
+### Features
+
 - [Data Metric Functions](./data_metric_function.md)
+- [Row Level Security](./row_level_security.md)
