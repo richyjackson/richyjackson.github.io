@@ -1,5 +1,5 @@
 ---
-layout: small
+layout: default
 title: BI Developer WIKI
 description: Useful code for data engineers, analysts and scientists
 ---
