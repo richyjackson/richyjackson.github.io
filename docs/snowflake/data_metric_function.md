@@ -1,3 +1,9 @@
+---
+layout: default
+title: Snowflake
+---
+
+[Home](./index.md)
 Data Metric Functions (DMFs) perform data quality checks against tables or views at regular intervals.
 To automate data quality checks you must firstly:
 - Choose between a pre-built system DMF or create a custom one
