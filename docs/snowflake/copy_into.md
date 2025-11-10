@@ -1,3 +1,9 @@
+---
+layout: default
+title: Snowflake
+---
+
+[Home](./index.md)
 ## COPY INTO
 
 Code can be used to the select the stage, the file stored in the stage and the file format to move data to the table required
