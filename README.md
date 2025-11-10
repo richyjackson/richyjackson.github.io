@@ -2,6 +2,6 @@
 
 ## About Me
 
-Hi, I Richard Jackson, Ive been working in data engineering and visualisation for some 12 years in the banking sector.
+Hi, I’m Richard Jackson. I’ve spent over a decade working with data in the banking sector, gaining experience across data analysis, engineering, migration, Power BI development, and the Snowflake Data Cloud.
 
-[WIKI](https://github.com/richyjackson/richyjackson.github.io/wiki/Test)
+This site serves as a working library of useful code snippets and techniques I’ve collected throughout my career.
