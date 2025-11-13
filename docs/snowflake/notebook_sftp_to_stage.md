@@ -54,8 +54,7 @@ grant usage on integration pypi_access_integration to role sysadmin;
 ### 5. Create a Notebook using the file or code below run in a container
 
 Make sure to enable external access to your APIs
-
-**Import packages**
+### Import packages
 
 ```python
 # Import python packages
@@ -68,7 +67,7 @@ from snowflake.snowpark.context import get_active_session
 session = get_active_session()
 ```
 
-** Create the download function**
+### Create the download function
 
 ```python
 import os
@@ -149,7 +148,7 @@ def download_and_stage_file_from_sftp(sftp_details, remote_file_path, stage_loca
             print(f"Deleted temporary file {temp_file_download_path}")
 ```
 
-** Download the file **
+### Download the file
 
 ```python
 sftp_details = {
@@ -168,7 +167,7 @@ destination = "/"
 download_and_stage_file_from_sftp(sftp_details, remote_file_path, stage_location, destination)
 ```
 
-** Verify the result **
+### Verify the result
 
 ```sql
 ls @RAW.SFTP.FILES
