@@ -1,3 +1,9 @@
+---
+layout: default
+title: Snowflake
+---
+
+
 ## Dynamic Tables
 
 - Dynamic tables automatic check for data changes to underlying tables, populating data as required
