@@ -1,7 +1,21 @@
 Querying JSON
 
 ```json
-{ "identifierType": "FactSet Entity", "instrumentMetadata": { "name": "Close Brothers Group plc", "entityId": "05H7JB-E", "ticker": "CBG-GB", "sedol": "0766807", "cusip": "G22120102", "isin": "GB0007668071" }, "customSymbolDetails": null, "query": "CBG-GB" }
+Formatted JSON Data
+
+{
+   "identifierType":"FactSet Entity",
+   "instrumentMetadata":{
+      "name":"My Firm plc",
+      "entityId":"05H7JB-E",
+      "ticker":"CBG-GB",
+      "sedol":"0766807",
+      "cusip":"G22120102",
+      "isin":"GB0007668071"
+   },
+   "customSymbolDetails":null,
+   "query":"CBG-GB"
+}
 ```
 ```sql
 SELECT 
