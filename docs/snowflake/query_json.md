@@ -1,7 +1,6 @@
 Querying JSON
 
 ```json
-Formatted JSON Data
 
 {
    "identifierType":"FactSet Entity",
