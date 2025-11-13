@@ -1,0 +1,2249 @@
+create or replace database DEV_ANCHOR_DB;
+
+create or replace schema IRN_ANALYTICS;
+
+create or replace dynamic table RECOMMENDATION(
+	ISIN WITH MASKING POLICY DEV_ANCHOR_DB.IRN_ANALYTICS.MASK_ISIN_ANALYTICS,
+	SEDOL,
+	NAME,
+	NOTES_ID,
+	COVERING_ANALYST,
+	ASSET_CLASS,
+	EXTERNAL_RESEARCH_ATTESTATION,
+	HAS_ESG_SEC_INCLUDED,
+	HAS_BREACH_UNGC_NORMS,
+	HAS_MATERIAL_EXPOSURE,
+	INCLUDED_IN_ALTERNATIVES,
+	DATE_OF_LATEST_NOTE,
+	DATE_OF_LATEST_RECOMMENDATION,
+	RECOMMENDATION
+) WITH ROW ACCESS POLICY DEV_ANCHOR_DB.IRN_ANALYTICS.RECOMMENDATION_SEDOL ON (SEDOL)
+ target_lag = '1 day' refresh_mode = AUTO initialize = ON_CREATE warehouse = DEV_BI_WH_XS
+ as
+WITH notes AS (
+    SELECT 
+        ni1.noteid, 
+        ni1.identifier 
+    FROM 
+        DEV_ANCHOR_DB.IRN_STAGING.NOTES_VW ni1 
+    JOIN (
+        SELECT 
+            noteid, 
+            ROW_NUMBER() OVER (
+                PARTITION BY identifier 
+                ORDER BY notedate DESC
+            ) rn 
+        FROM DEV_ANCHOR_DB.IRN_STAGING.NOTES_VW
+    ) ni2 
+    ON ni1.noteid = ni2.noteid 
+    WHERE rn = 1
+),
+notescustomfields AS (
+    SELECT 
+        LISTAGG(cfv.TEXTVALUE, ',') AS opt, 
+        cf.fieldname, 
+        n.noteid
+    FROM 
+        notes n 
+    INNER JOIN DEV_ANCHOR_DB.IRN_STAGING.CUSTOMFIELDVALUES_VW cfv 
+        ON n.noteid = cfv.noteid 
+    INNER JOIN DEV_ANCHOR_DB.IRN_STAGING.CUSTOMFIELDS_VW cf 
+        ON cf.customfieldid = cfv.customfieldid 
+    GROUP BY n.noteid, cf.FIELDNAME
+)
+SELECT 
+    TRIM(id.isin) AS isin, 
+    TRIM(NULLIF(id.sedol, '')) AS sedol,
+    COALESCE(TRIM(id.name), 'N/A') AS name, 
+    TRIM(n.noteid) AS notes_id, 
+    NULLIF(TRIM(CASE WHEN ncf1.fieldname = 'COV_ANALYST' THEN ncf1.opt END,''),'') AS covering_analyst, 
+    NULLIF(TRIM(CASE WHEN ncf2.fieldname = 'ASSET_CLASS' THEN ncf2.opt END,''),'') AS asset_class, 
+    NULLIF(TRIM(CASE WHEN ncf3.fieldname = 'COMPULS_ATTESTATION' THEN ncf3.opt END,''),'') AS external_research_attestation, 
+    NULLIF(TRIM(CASE WHEN ncf4.fieldname = 'ESG_INCLUDED' THEN ncf4.opt END,''),'') AS has_esg_sec_included, 
+    NULLIF(TRIM(CASE WHEN ncf5.fieldname = 'UNGC_REVIEWED' THEN ncf5.opt END,''),'') AS has_breach_ungc_norms, 
+    NULLIF(TRIM(CASE WHEN ncf6.fieldname = 'BISR_FACTORS' THEN ncf6.opt END,''),'') AS has_material_exposure, 
+    NULLIF(TRIM(CASE WHEN ncf2.fieldname = 'ASSET_CLASS' AND ncf2.opt='Alternatives' THEN 'Yes' ELSE 'No' END,''),'') AS included_in_alternatives, 
+    TRIM(nt.notedate) AS date_of_latest_note, 
+    COALESCE(
+        CASE WHEN nt.subject IN ('Initiation Note', 'Update') THEN nt.notedate END,
+        nt.notedate
+    ) AS date_of_latest_recommendation, 
+    TRIM(nt.recommendation) AS recommendation
+FROM 
+    DEV_ANCHOR_DB.IRN_STAGING.IDENTIFIERS id 
+INNER JOIN DEV_ANCHOR_DB.IRN_STAGING.NOTES_VW nt 
+    ON nt.identifier = id.id 
+INNER JOIN notes n 
+    ON nt.noteid = n.noteid 
+LEFT JOIN notescustomfields ncf1 
+    ON n.noteid = ncf1.noteid AND ncf1.FIELDNAME = 'COV_ANALYST'
+LEFT JOIN notescustomfields ncf2 
+    ON n.noteid = ncf2.noteid AND ncf2.FIELDNAME = 'ASSET_CLASS'
+LEFT JOIN notescustomfields ncf3 
+    ON n.noteid = ncf3.noteid AND ncf3.FIELDNAME = 'COMPULS_ATTESTATION'
+LEFT JOIN notescustomfields ncf4 
+    ON n.noteid = ncf4.noteid AND ncf4.FIELDNAME = 'ESG_INCLUDED'
+LEFT JOIN notescustomfields ncf5 
+    ON n.noteid = ncf5.noteid AND ncf5.FIELDNAME = 'UNGC_REVIEWED'
+LEFT JOIN notescustomfields ncf6 
+    ON n.noteid = ncf6.noteid AND ncf6.FIELDNAME = 'BISR_FACTORS'
+WHERE 
+    id.isin IS NOT NULL;
+create or replace TABLE RECOMMENDATION_HISTORY (
+	ISIN VARCHAR(16777216),
+	SEDOL VARCHAR(16777216),
+	NAME VARCHAR(16777216),
+	NOTES_ID VARCHAR(16777216),
+	COVERING_ANALYST VARCHAR(16777216),
+	ASSET_CLASS VARCHAR(16777216),
+	EXTERNAL_RESEARCH_ATTESTATION VARCHAR(16777216),
+	HAS_ESG_SEC_INCLUDED VARCHAR(16777216),
+	HAS_BREACH_UNGC_NORMS VARCHAR(16777216),
+	HAS_MATERIAL_EXPOSURE VARCHAR(16777216),
+	INCLUDED_IN_ALTERNATIVES VARCHAR(16777216),
+	DATE_OF_LATEST_NOTE DATE,
+	DATE_OF_LATEST_RECOMMENDATION DATE,
+	RECOMMENDATION VARCHAR(16777216),
+	VALID_FROM TIMESTAMP_NTZ(9),
+	VALID_TO TIMESTAMP_NTZ(9)
+);
+CREATE OR REPLACE PROCEDURE "RECOMMENDATION_HISTORY_LOAD_V2"()
+RETURNS VARCHAR
+LANGUAGE SQL
+EXECUTE AS OWNER
+AS '
+BEGIN
+    -- Log start status
+    CALL DEV_ANCHOR_DB.IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+        ''RECOMMENDATION_HISTORY_LOAD_V2'',
+        ''RECOMMENDATION_HISTORY'',
+        ''Started'',
+        -1,  -- Always -1
+        -1,  -- Always -1
+        ''Recommendation --> Archival'',
+        ''Starting recommendation history load''
+    );
+
+    -- Perform MERGE operation
+    MERGE INTO DEV_ANCHOR_DB.IRN_ANALYTICS.RECOMMENDATION_HISTORY AS target
+    USING (
+        SELECT 
+            ISIN,
+            SEDOL,
+            NAME,
+            NOTES_ID,
+            FIELD_NAME,
+            COVERING_ANALYST,
+            ASSET_CLASS,
+            EXTERNAL_RESEARCH_ATTESTATION,
+            HAS_ESG_SEC_INCLUDED,
+            HAS_BREACH_UNGC_NORMS,
+            HAS_MATERIAL_EXPOSURE,
+            INCLUDED_IN_ALTERNATIVES,
+            DATE_OF_LATEST_NOTE,
+            DATE_OF_LATEST_RECOMMENDATION,
+            RECOMMENDATION,
+            MD5(CONCAT(
+                COALESCE(ISIN, ''''),
+                COALESCE(SEDOL, ''''),
+                COALESCE(NAME, ''''),
+                COALESCE(FIELD_NAME, ''''),
+                COALESCE(NOTES_ID, ''''),
+                COALESCE(COVERING_ANALYST, ''''),
+                COALESCE(ASSET_CLASS, ''''),
+                COALESCE(EXTERNAL_RESEARCH_ATTESTATION, ''''),
+                COALESCE(HAS_BREACH_UNGC_NORMS, ''''),
+                COALESCE(HAS_ESG_SEC_INCLUDED, ''''),
+                COALESCE(HAS_MATERIAL_EXPOSURE, ''''),
+                COALESCE(INCLUDED_IN_ALTERNATIVES, ''''),
+                COALESCE(DATE_OF_LATEST_NOTE::STRING, ''''),
+                COALESCE(DATE_OF_LATEST_RECOMMENDATION::STRING, ''''),
+                COALESCE(RECOMMENDATION, '''')
+            )) AS HASH_VALUE,
+            CURRENT_TIMESTAMP AS VALID_FROM
+        FROM DEV_ANCHOR_DB.IRN_ANALYTICS.RECOMMENDATION
+    ) AS source
+    ON target.HASH_VALUE = source.HASH_VALUE
+    WHEN NOT MATCHED THEN INSERT (
+        ISIN,
+        SEDOL,
+        NAME,
+        NOTES_ID,
+        FIELD_NAME,
+        COVERING_ANALYST,
+        ASSET_CLASS,
+        EXTERNAL_RESEARCH_ATTESTATION,
+        HAS_ESG_SEC_INCLUDED,
+        HAS_BREACH_UNGC_NORMS,
+        HAS_MATERIAL_EXPOSURE,
+        INCLUDED_IN_ALTERNATIVES,
+        DATE_OF_LATEST_NOTE,
+        DATE_OF_LATEST_RECOMMENDATION,
+        RECOMMENDATION,
+        HASH_VALUE,
+        VALID_FROM
+    ) VALUES (
+        source.ISIN,
+        source.SEDOL,
+        source.NAME,
+        source.NOTES_ID,
+        source.FIELD_NAME,
+        source.COVERING_ANALYST,
+        source.ASSET_CLASS,
+        source.EXTERNAL_RESEARCH_ATTESTATION,
+        source.HAS_ESG_SEC_INCLUDED,
+        source.HAS_BREACH_UNGC_NORMS,
+        source.HAS_MATERIAL_EXPOSURE,
+        source.INCLUDED_IN_ALTERNATIVES,
+        source.DATE_OF_LATEST_NOTE,
+        source.DATE_OF_LATEST_RECOMMENDATION,
+        source.RECOMMENDATION,
+        source.HASH_VALUE,
+        source.VALID_FROM
+    );
+
+    -- Log success
+    CALL DEV_ANCHOR_DB.IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+        ''RECOMMENDATION_HISTORY_LOAD_V2'',
+        ''RECOMMENDATION_HISTORY'',
+        ''Completed'',
+        -1,  -- Always -1
+        -1,  -- Always -1
+        ''Recommendation --> Archival'',
+        ''Recommendation history loaded successfully''
+    );
+
+    RETURN ''Success'';
+
+EXCEPTION 
+    WHEN OTHER THEN
+        -- Log generic error message
+        CALL DEV_ANCHOR_DB.IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''RECOMMENDATION_HISTORY_LOAD_V2'',
+            ''RECOMMENDATION_HISTORY'',
+            ''Error'',
+            -1,  -- Always -1
+            -1,  -- Always -1
+            ''Recommendation --> Archival'',
+            ''Failed due to an unknown error''
+        );
+
+        RETURN ''Failed due to an unknown error'';
+END;
+';
+CREATE OR REPLACE PROCEDURE "RECOMMENDATION_HISTORY_LOAD_V3"()
+RETURNS VARCHAR
+LANGUAGE SQL
+EXECUTE AS OWNER
+AS '
+DECLARE ERR_MSG STRING;
+BEGIN
+    -- Log start status
+    CALL DEV_ANCHOR_DB.IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+        ''RECOMMENDATION_HISTORY_LOAD_V3'', ''RECOMMENDATION_HISTORY'', ''Started'', 
+        -1, -1, ''Recommendation --> Archival'', ''Starting recommendation history load''
+    );
+ 
+    UPDATE DEV_ANCHOR_DB.IRN_ANALYTICS.RECOMMENDATION_HISTORY AS target
+SET 
+    target.VALID_TO = current_timestamp  -- Set end_date to today''s date for expired records
+FROM DEV_ANCHOR_DB.IRN_ANALYTICS.RECOMMENDATION AS source
+WHERE target.NOTES_ID = source.NOTES_ID
+  AND (
+        target.ISIN != source.ISIN OR 
+        target.SEDOL != source.SEDOL OR
+        target.NAME != source.NAME OR
+        target.NOTES_ID != source.NOTES_ID OR
+        target.COVERING_ANALYST != source.COVERING_ANALYST OR
+        target.ASSET_CLASS != source.ASSET_CLASS OR
+        target.EXTERNAL_RESEARCH_ATTESTATION != source.EXTERNAL_RESEARCH_ATTESTATION OR
+        target.HAS_ESG_SEC_INCLUDED != source.HAS_ESG_SEC_INCLUDED OR
+        target.HAS_BREACH_UNGC_NORMS != source.HAS_BREACH_UNGC_NORMS OR
+        target.HAS_MATERIAL_EXPOSURE != source.HAS_MATERIAL_EXPOSURE OR
+        target.INCLUDED_IN_ALTERNATIVES != source.INCLUDED_IN_ALTERNATIVES OR
+        target.DATE_OF_LATEST_NOTE != source.DATE_OF_LATEST_NOTE OR
+        target.DATE_OF_LATEST_RECOMMENDATION != source.DATE_OF_LATEST_RECOMMENDATION OR
+        target.RECOMMENDATION != source.RECOMMENDATION
+    )  -- Check if data has changed
+  AND target.VALID_TO IS NULL;  -- Only update active records
+ 
+  
+INSERT INTO DEV_ANCHOR_DB.IRN_ANALYTICS.RECOMMENDATION_HISTORY (
+    ISIN,
+    SEDOL,
+    NAME,
+    NOTES_ID,
+    COVERING_ANALYST,
+    ASSET_CLASS,
+    EXTERNAL_RESEARCH_ATTESTATION,
+    HAS_ESG_SEC_INCLUDED,
+    HAS_BREACH_UNGC_NORMS,
+    HAS_MATERIAL_EXPOSURE,
+    INCLUDED_IN_ALTERNATIVES,
+    DATE_OF_LATEST_NOTE,
+    DATE_OF_LATEST_RECOMMENDATION,
+    RECOMMENDATION,
+    VALID_FROM,
+    VALID_TO
+)
+SELECT 
+    source.ISIN,
+    source.SEDOL,
+    source.NAME,
+    source.NOTES_ID,
+    source.COVERING_ANALYST,
+    source.ASSET_CLASS,
+    source.EXTERNAL_RESEARCH_ATTESTATION,
+    source.HAS_ESG_SEC_INCLUDED,
+    source.HAS_BREACH_UNGC_NORMS,
+    source.HAS_MATERIAL_EXPOSURE,
+    source.INCLUDED_IN_ALTERNATIVES,
+    source.DATE_OF_LATEST_NOTE,
+    source.DATE_OF_LATEST_RECOMMENDATION,
+    source.RECOMMENDATION,
+    CURRENT_TIMESTAMP AS VALID_FROM,
+    NULL AS VALID_TO
+FROM DEV_ANCHOR_DB.IRN_ANALYTICS.RECOMMENDATION AS source
+LEFT JOIN DEV_ANCHOR_DB.IRN_ANALYTICS.RECOMMENDATION_HISTORY AS target
+    ON target.NOTES_ID = source.NOTES_ID 
+    AND target.VALID_TO IS NULL 
+WHERE target.NOTES_ID IS NULL
+   OR (
+        target.ISIN != source.ISIN OR 
+        target.SEDOL != source.SEDOL OR
+        target.NAME != source.NAME OR
+        target.NOTES_ID != source.NOTES_ID OR
+        target.COVERING_ANALYST != source.COVERING_ANALYST OR
+        target.ASSET_CLASS != source.ASSET_CLASS OR
+        target.EXTERNAL_RESEARCH_ATTESTATION != source.EXTERNAL_RESEARCH_ATTESTATION OR
+        target.HAS_ESG_SEC_INCLUDED != source.HAS_ESG_SEC_INCLUDED OR
+        target.HAS_BREACH_UNGC_NORMS != source.HAS_BREACH_UNGC_NORMS OR
+        target.HAS_MATERIAL_EXPOSURE != source.HAS_MATERIAL_EXPOSURE OR
+        target.INCLUDED_IN_ALTERNATIVES != source.INCLUDED_IN_ALTERNATIVES OR
+        target.DATE_OF_LATEST_NOTE != source.DATE_OF_LATEST_NOTE OR
+        target.DATE_OF_LATEST_RECOMMENDATION != source.DATE_OF_LATEST_RECOMMENDATION OR
+        target.RECOMMENDATION != source.RECOMMENDATION
+    );
+ 
+    -- Log success
+    CALL DEV_ANCHOR_DB.IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+        ''RECOMMENDATION_HISTORY_LOAD_V3'', ''RECOMMENDATION_HISTORY'', ''Completed'', 
+        -1, -1, ''Recommendation --> Archival'', ''Completed Recommendation history load''
+    );
+ 
+    RETURN ''History Load Completed'';    
+
+    	
+EXCEPTION
+    WHEN OTHER THEN
+      ERR_MSG := SQLERRM;
+		        INSERT INTO IRN_STAGING.PROCESS_LOG (
+                SP_NAME, TABLE_NAME, STATUS, RAW_COUNT, STG_COUNT, 
+                PROCESS_FLOW, MESSAGE, START_TIME
+            )
+            VALUES (
+                ''RECOMMENDATION_HISTORY_LOAD_V3'', ''RECOMMENDATION_HISTORY'', ''Error'', null, null, 
+                ''Failure'', :ERR_MSG, CURRENT_TIMESTAMP()
+            );
+        RETURN ''Error occurred1: '' || SQLSTATE || '' (Code: '' || SQLCODE || '', Msg: '' || SQLERRM || '')'';
+		 
+END;
+';
+create or replace task RECOMMENDATION_HISTORY_TASK
+	warehouse=DEV_BI_WH_XS
+	schedule='USING CRON 0 0 * * * UTC'
+	as CALL DEV_ANCHOR_DB.IRN_ANALYTICS.RECOMMENDATION_HISTORY_LOAD_V3();
+create or replace masking policy MASK_ISIN_ANALYTICS as (ISIN VARCHAR) 
+returns VARCHAR ->
+CASE
+    WHEN CURRENT_ROLE() = 'DEV_ANALYST' 
+    THEN 'XXXX' || RIGHT(ISIN, 4) -- Mask all except last 4 characters
+    ELSE ISIN -- Show full ISIN for other roles
+END
+;
+create or replace row access policy RECOMMENDATION_SEDOL as (SEDOL VARCHAR) 
+returns BOOLEAN ->
+CASE WHEN 'DEV_ENGINEER' = CURRENT_ROLE() THEN TRUE
+         WHEN 'SYSADMIN' = CURRENT_ROLE() THEN TRUE
+	     WHEN 'DEV_ANALYST' = CURRENT_ROLE() AND SEDOL = 'BHJYC05' THEN TRUE 
+	ELSE FALSE 
+END
+;
+create or replace streamlit MS6FP3586NWUC_PO
+	root_location='@DEV_ANCHOR_DB.IRN_ANALYTICS."MS6FP3586NWUC_PO (Stage)"
+	main_file='/streamlit_app.py'
+	query_warehouse='DEV_BI_WH_XS'
+	comment='{"lastUpdatedUser":"4518092437323","lastUpdatedTime":1739865430598}'
+	title='Data Feed Monitor';
+create or replace schema IRN_GIT;
+
+create or replace schema IRN_LOG;
+
+create or replace TABLE CONFIG_API (
+	SOURCE VARCHAR(16777216),
+	ID VARCHAR(16777216),
+	SECRETS VARCHAR(16777216),
+	UPDATE_TIMESTAMP TIMESTAMP_NTZ(9) DEFAULT CURRENT_TIMESTAMP()
+);
+create or replace TABLE DQ_AUDIT (
+	ERROR_KEY VARCHAR(16777216),
+	ERROR_VALUE VARCHAR(16777216),
+	FILE_NAME VARCHAR(16777216),
+	UPDATE_TIMESTAMP TIMESTAMP_NTZ(9) DEFAULT CURRENT_TIMESTAMP()
+);
+create or replace schema IRN_RAW;
+
+create or replace TABLE AUTHORS (
+	DATA VARIANT,
+	FILE_NAME VARCHAR(16777216),
+	EVENT_TIME TIMESTAMP_NTZ(9),
+	EVENT_HASH VARCHAR(16777216) AS (SHA2(TO_JSON(DATA), 256))
+);
+create or replace TABLE CUSTOM_FIELDS (
+	DATA VARIANT,
+	FILE_NAME VARCHAR(16777216),
+	EVENT_TIME TIMESTAMP_NTZ(9),
+	EVENT_HASH VARCHAR(16777216) AS (SHA2(TO_JSON(DATA), 256))
+);
+create or replace TABLE DEPARTMENTS (
+	DEPT_ID NUMBER(4,0) NOT NULL,
+	DEPARTMENT_NAME VARCHAR(30) NOT NULL,
+	MANAGER_ID NUMBER(6,0),
+	LOCATION_ID NUMBER(4,0),
+	primary key (DEPT_ID)
+);
+create or replace TABLE IDENTIFIERS (
+	DATA VARIANT,
+	FILE_NAME VARCHAR(16777216),
+	EVENT_TIME TIMESTAMP_NTZ(9),
+	EVENT_HASH VARCHAR(16777216) AS (SHA2(TO_JSON(DATA), 256))
+);
+create or replace TABLE NOTES (
+	DATA VARIANT,
+	FILE_NAME VARCHAR(16777216),
+	EVENT_TIME TIMESTAMP_NTZ(9),
+	EVENT_HASH VARCHAR(16777216) AS (SHA2(TO_JSON(DATA), 256))
+);
+create or replace TABLE NOTES_CUSTOM_FIELDS (
+	DATA VARIANT,
+	FILE_NAME VARCHAR(16777216),
+	EVENT_TIME TIMESTAMP_NTZ(9),
+	EVENT_HASH VARCHAR(16777216) AS (SHA2(TO_JSON(DATA), 256))
+);
+create or replace TABLE RECOMMENDATIONS (
+	DATA VARIANT,
+	FILE_NAME VARCHAR(16777216),
+	EVENT_TIME TIMESTAMP_NTZ(9),
+	EVENT_HASH VARCHAR(16777216) AS (SHA2(TO_JSON(DATA), 256))
+);
+create or replace TABLE SPOTIFY (
+	JSON_DATA VARCHAR(16777216)
+);
+create or replace TABLE SUBJECTS (
+	DATA VARIANT,
+	FILE_NAME VARCHAR(16777216),
+	EVENT_TIME TIMESTAMP_NTZ(9),
+	EVENT_HASH VARCHAR(16777216) AS (SHA2(TO_JSON(DATA), 256))
+);
+create or replace TABLE USERS (
+	DATA VARIANT,
+	FILE_NAME VARCHAR(16777216),
+	EVENT_TIME TIMESTAMP_NTZ(9),
+	EVENT_HASH VARCHAR(16777216) AS (SHA2(TO_JSON(DATA), 256))
+);
+create or replace secure view NOTES_SECURE_VIEW(
+	NOTEID,
+	NOTEDATE,
+	AUTHOR,
+	TITLE
+) as
+SELECT 
+NOTEID,
+NOTEDATE,
+AUTHOR,
+TITLE
+FROM FACSTSET_IRNDB.IRN.NOTES;
+create or replace secure view NOTES_VIEW_R(
+	NOTEID,
+	NOTEDATE,
+	AUTHOR,
+	TITLE
+) as
+SELECT 
+NOTEID,
+NOTEDATE,
+AUTHOR,
+TITLE
+FROM FACSTSET_IRNDB.IRN.NOTES;
+CREATE OR REPLACE FILE FORMAT FACTSET_JSON_FF
+	TYPE = json
+	NULL_IF = ()
+;
+CREATE OR REPLACE FUNCTION "FACTSET_GET_COUNT"()
+RETURNS TABLE ("ID" VARCHAR(16777216), "NAME" VARCHAR(16777216), "CODE" VARCHAR(16777216))
+LANGUAGE PYTHON
+RUNTIME_VERSION = '3.8'
+PACKAGES = ('requests')
+HANDLER = 'ApiData'
+EXTERNAL_ACCESS_INTEGRATIONS = (FACTSET_EXTERNAL_INTEGRATION)
+AS '
+import requests
+class ApiData:  
+    def process(self):
+        data = requests.get("https://api-sandbox.factset.com/research/irn/v1/Recommendations").json()
+        for row in data:
+            yield (row["id"], row["name"], row["code"])
+';
+CREATE OR REPLACE FUNCTION "GENERATE_JWT"()
+RETURNS VARCHAR
+LANGUAGE PYTHON
+RUNTIME_VERSION = '3.8'
+PACKAGES = ('cryptography','pyjwt','requests')
+HANDLER = 'generate_token'
+AS '
+
+import requests
+import json
+import base64
+import time
+import jwt
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.backends import default_backend
+
+def base64url_decode(base64url_str):
+    padding = ''='' * (4 - len(base64url_str) % 4)
+    return base64.urlsafe_b64decode(base64url_str + padding)
+
+def generate_token():
+    jwk_data = {
+        "n": "klJCJMKMtYr9FHzsC5JJ0Y7v_7CYHktuEcHpC1WWfwo9H9p7r5ZJRRmnl0NcQoGxAwpFpaEtdGNDPSF2K0gBMC5m8VApLvbZjArH1POvGZXOcdsochJY8gfDWneH7n47FN7eJdVdDB4SjDgDVec6GcFB0m0ztC1L_IuanDYBvSsa7WUcDlp_TvC_f5oxCOiSJAvPPFGcyOCQAs6wT7o81G5s6Wpxcw6qXNhoubD2q7-u6M6b4u6ltj-HNKnx-dl4LbPX6D6NT3aDVzg86bQvLHBmu7kSmYWrJsfuwF_GqAp6yW_Uwa4LTKs5d3FCvcoBDeHDa1MTtROsrvPP-zot5w",
+        "e": "AQAB",
+        "d": "fwEhYnDv26BBnef0pvKaWmf8T27ECv-kEYvDsU_f6nNDrQNien0zKeRjwHr6eMvDjoT7ARIOt0h1k3kY7eZ5CY4tUmYm6RngqJqu61t87_NFFzSIPcNJKwOsADliZpNwyuPL5QD22866gLUZyBWFK9fAP1sEFu9-Vj4CvHZwOfYAn5YqBwgfy4e5V5SNiG8WLMICAmAFLWtQX35vUtHlxhfScf2D-C-BK0lZAUcRMchB86dgdexePYUXY1O09pOy1RIlCwKQaAebkEo-uK7LcQmLfSqUFW2rVkXhwjfu3kx_5oi3AeAEMEnBJBO8YMwyOIJF7zKnIrv2VNPPQYWHeQ",
+        "p": "znyuXt8bHFQWDUsYhTsELAu9ST3vxKSPcvYzRGUJBVVUSfiJ6jr8OX-wAiW9mCW4eujC1980nW1iHsKJiPGTm8invcxFjKAeIWMAGiaP6-o1rvjktbvS-PEzNXAGR8J4KCBNjhKwrw4dvfmwZFzRl35wlFPmlAiCF5XpZJF82wM",
+        "q": "tWhFrxtRzqNHzDKQGBYTBzvRXcy5xfjeYQpvMFhVDosyPNrDQiUo3ByWWvt5tK6_18s01Jnxd2b4bsjscaUGTkRclJo532ulpU9_-Drts1AIKLO7D5dYiJTrQpmMaWpuuFYCrCmvm7TRBowHZ4lpe4STfy5tP6_d8X6crLl6Gk0",
+        "dp": "JxgEC4JCJ8LjyfCF2_Oofo5acBuB4cEmR6XFXxWh95iINNkRg39XcatzL3TlyICbxOl8ulJQK94hzaEXWQ4j3ELJP24FXPKTwc50nn7ekNPvBgmpg57j-q3v_BYRmlR_W1mCVXvEZ-BMUUOM2fOY2w3dUrfv1-ckekKvxZKmCPE",
+        "dq": "CrQzYGixRAsYYnEdVX5_8u5RpUI-N_M-U-WEuAqOQkRuW27hFJcSuSIqsQWjocip4zbHUEAhIlV-FTNf2DjPjXC1McOD5K36YS22tFPt0KXJRXWNdRcOD0kSNKTQxyuTiubwU25GQV7C8qryiOZvxe0FsvxvT9G1u9knr31mOgU",
+        "qi": "YnN7Uk_xb7tLkTtNpwzQEb3aNkvTrE8V7leUC5zcOMqysCEkLKgx2Nbdn6Fk-yCbcEIiNyPknrLoE4SyummdpE9SE5ErX0nzeDUcJ3gH4KaKFSv_w0cbTUThtbECPWset7C3nI0seSz3wL2JUFSQ2fyd_FcwMHUlORI5USuoqFE"
+    }
+
+    # Construct the RSA private key
+    private_key_numbers = rsa.RSAPrivateNumbers(
+        p=int.from_bytes(base64url_decode(jwk_data["p"]), byteorder="big"),
+        q=int.from_bytes(base64url_decode(jwk_data["q"]), byteorder="big"),
+        d=int.from_bytes(base64url_decode(jwk_data["d"]), byteorder="big"),
+        dmp1=int.from_bytes(base64url_decode(jwk_data["dp"]), byteorder="big"),
+        dmq1=int.from_bytes(base64url_decode(jwk_data["dq"]), byteorder="big"),
+        iqmp=int.from_bytes(base64url_decode(jwk_data["qi"]), byteorder="big"),
+        public_numbers=rsa.RSAPublicNumbers(
+            e=int.from_bytes(base64url_decode(jwk_data["e"]), byteorder="big"),
+            n=int.from_bytes(base64url_decode(jwk_data["n"]), byteorder="big")
+        )
+    )
+
+    private_key = private_key_numbers.private_key(default_backend())
+
+    payload = {
+        "iss": "7541ff99de124abfb0ea472248044d9e",
+        "sub": "7541ff99de124abfb0ea472248044d9e",
+        "aud": "https://auth.factset.com",
+        "exp": int(time.time()) + 300,
+        "iat": int(time.time()),
+        "scope": "your_required_scope"
+    }
+
+    header = {"alg": "RS256", "typ": "JWT", "kid": "ce5d8309c0514ffaa48458aceda14022"}
+
+    encoded_jwt = jwt.encode(payload, private_key, algorithm="RS256", headers=header)
+
+    # Define OAuth token endpoint
+    token_url = "https://auth.factset.com/as/token.oauth2"
+    client_id = "7541ff99de124abfb0ea472248044d9e"  # Defined properly
+
+    # Prepare the data for the POST request
+    data = {
+        "grant_type": "client_credentials",
+        "client_id": client_id,
+        "client_assertion": encoded_jwt,
+        "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+    }
+
+    
+';
+CREATE OR REPLACE FUNCTION "GET_OAUTH_TOKEN"()
+RETURNS VARCHAR
+LANGUAGE PYTHON
+RUNTIME_VERSION = '3.8'
+PACKAGES = ('requests')
+HANDLER = 'get_token'
+EXTERNAL_ACCESS_INTEGRATIONS = (FACTSET_EXTERNAL_INTEGRATION)
+AS '
+import requests
+
+def get_token():
+    try:
+        client_id = ''7541ff99de124abfb0ea472248044d9e''
+        client_secret = ''''  # Replace with your GitHub client secret
+        token_url = ''https://auth.factset.com/as/token.oauth2''
+
+        payload = {
+            ''client_id'': client_id,
+            ''client_secret'': client_secret,
+            ''grant_type'': ''client_credentials''
+        }
+
+        headers = {''Accept'': ''application/json''}
+
+        # Make the API request
+        response = requests.post(token_url, data=payload, headers=headers, verify=False)
+
+        if response.status_code == 200:
+            data = response.json()
+            access_token = data.get(''access_token'', ''No access_token found'')
+            return access_token
+        else:
+            return f"HTTP {response.status_code}: {response.text}"
+
+    except Exception as e:
+        return f"Error: {str(e)}"
+';
+CREATE OR REPLACE FUNCTION "MULTIPLY_BY_TWO"("X" NUMBER(38,0))
+RETURNS NUMBER(38,0)
+LANGUAGE PYTHON
+RUNTIME_VERSION = '3.8'
+HANDLER = 'handler'
+AS '
+def handler(x):
+    return x * 2
+';
+CREATE OR REPLACE PROCEDURE "PROC_GRANT_ACCESS"()
+RETURNS VARCHAR
+LANGUAGE SQL
+EXECUTE AS CALLER
+AS '
+BEGIN
+    -- Grant basic access to the database
+    EXECUTE IMMEDIATE ''GRANT USAGE ON DATABASE DEV_ANCHOR_DB TO ROLE DATABASE_CONTRIBUTOR'';
+
+    -- Grant access to schemas (existing only)
+    EXECUTE IMMEDIATE ''GRANT USAGE ON ALL SCHEMAS IN DATABASE DEV_ANCHOR_DB TO ROLE DATABASE_CONTRIBUTOR'';
+    
+    -- Allow creation of schemas
+    EXECUTE IMMEDIATE ''GRANT CREATE SCHEMA ON DATABASE DEV_ANCHOR_DB TO ROLE DATABASE_CONTRIBUTOR'';
+
+    -- Grant object creation permissions in schemas (existing only)
+    EXECUTE IMMEDIATE ''
+        GRANT CREATE TABLE, CREATE VIEW, CREATE MATERIALIZED VIEW, CREATE DYNAMIC TABLE, 
+              CREATE STAGE, CREATE FILE FORMAT, 
+              CREATE PROCEDURE, CREATE FUNCTION, CREATE PIPE 
+        ON ALL SCHEMAS IN DATABASE DEV_ANCHOR_DB 
+        TO ROLE DATABASE_CONTRIBUTOR'';
+    EXECUTE IMMEDIATE ''GRANT MODIFY ON ALL SCHEMAS IN DATABASE DEV_ANCHOR_DB TO ROLE DATABASE_CONTRIBUTOR'';
+    --Grant WAREHOUSE 
+    --EXECUTE IMMEDIATE ''GRANT OWNERSHIP ON WAREHOUSE DEV_BI_WH_XS TO ROLE DATABASE_CONTRIBUTOR'';
+    EXECUTE IMMEDIATE ''GRANT USAGE ON WAREHOUSE DEV_BI_WH_XS TO ROLE DATABASE_CONTRIBUTOR'';
+    EXECUTE IMMEDIATE ''GRANT USAGE ON WAREHOUSE DEV_BI_WH_XS TO ROLE DEV_ENGINEER'';
+
+    -- Grant usage on stages
+    EXECUTE IMMEDIATE ''
+        GRANT USAGE, READ ON ALL STAGES IN SCHEMA DEV_ANCHOR_DB.IRN_RAW 
+        TO ROLE DATABASE_CONTRIBUTOR'';
+
+    --Grant USAGE on File Format `FACTSET_JSON_FF`
+    EXECUTE IMMEDIATE ''GRANT USAGE ON FILE FORMAT DEV_ANCHOR_DB.IRN_RAW.FACTSET_JSON_FF TO ROLE DATABASE_CONTRIBUTOR'';
+
+    -- Grant modification permissions (DML: INSERT, UPDATE, DELETE, TRUNCATE) on tables
+    EXECUTE IMMEDIATE ''
+        GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE 
+        ON ALL TABLES IN DATABASE DEV_ANCHOR_DB 
+        TO ROLE DATABASE_CONTRIBUTOR'';
+    
+    -- Grant SELECT permissions for all views
+    EXECUTE IMMEDIATE ''
+        GRANT SELECT ON ALL VIEWS IN DATABASE DEV_ANCHOR_DB 
+        TO ROLE DATABASE_CONTRIBUTOR'';
+
+    -- Grant SELECT permissions for all materialized views
+    EXECUTE IMMEDIATE ''
+        GRANT SELECT ON ALL MATERIALIZED VIEWS IN DATABASE DEV_ANCHOR_DB 
+        TO ROLE DATABASE_CONTRIBUTOR'';
+
+    -- Grant SELECT & MONITOR permissions for dynamic tables
+    EXECUTE IMMEDIATE ''
+        GRANT SELECT, MONITOR 
+        ON ALL DYNAMIC TABLES IN DATABASE DEV_ANCHOR_DB 
+        TO ROLE DATABASE_CONTRIBUTOR'';
+
+    -- Grant SELECT on all functions and procedures
+    EXECUTE IMMEDIATE ''
+        GRANT USAGE ON ALL FUNCTIONS IN DATABASE DEV_ANCHOR_DB 
+        TO ROLE DATABASE_CONTRIBUTOR'';
+    EXECUTE IMMEDIATE ''
+        GRANT USAGE ON ALL PROCEDURES IN DATABASE DEV_ANCHOR_DB 
+        TO ROLE DATABASE_CONTRIBUTOR'';
+
+    -- Grant CREATE TASK on a specific schema
+    EXECUTE IMMEDIATE ''GRANT CREATE TASK ON SCHEMA DEV_ANCHOR_DB.IRN_STAGING TO ROLE DATABASE_CONTRIBUTOR'';
+    EXECUTE IMMEDIATE ''GRANT OPERATE ON ALL TASKS IN SCHEMA DEV_ANCHOR_DB.IRN_STAGING TO ROLE DATABASE_CONTRIBUTOR'';    
+    EXECUTE IMMEDIATE ''GRANT OPERATE ON ALL TASKS IN SCHEMA DEV_ANCHOR_DB.IRN_RAW TO ROLE DATABASE_CONTRIBUTOR'';  
+    EXECUTE IMMEDIATE ''GRANT OPERATE ON ALL TASKS IN SCHEMA DEV_ANCHOR_DB.IRN_ANALYTICS TO ROLE DATABASE_CONTRIBUTOR'';  
+
+    --Grant SELECT on stream 
+    EXECUTE IMMEDIATE ''GRANT SELECT ON ALL STREAMS IN SCHEMA DEV_ANCHOR_DB.IRN_RAW TO ROLE DATABASE_CONTRIBUTOR'';
+    EXECUTE IMMEDIATE ''GRANT CREATE STREAM ON SCHEMA DEV_ANCHOR_DB.IRN_RAW TO ROLE DATABASE_CONTRIBUTOR'';
+
+    --Grant ACCESS on tables 
+    EXECUTE IMMEDIATE ''GRANT SELECT ON ALL TABLES IN DATABASE DEV_ANCHOR_DB TO ROLE DATABASE_CONTRIBUTOR'';
+    EXECUTE IMMEDIATE ''GRANT SELECT ON ALL TABLES IN SCHEMA IRN_RAW TO ROLE DATABASE_CONTRIBUTOR'';
+    EXECUTE IMMEDIATE ''GRANT SELECT ON ALL TABLES IN SCHEMA IRN_STAGING TO ROLE DATABASE_CONTRIBUTOR'';
+    EXECUTE IMMEDIATE ''GRANT SELECT ON ALL TABLES IN SCHEMA IRN_ANALYTICS TO ROLE DATABASE_CONTRIBUTOR'';
+    EXECUTE IMMEDIATE ''GRANT WRITE ON ALL STAGES IN SCHEMA DEV_ANCHOR_DB.IRN_RAW TO ROLE DATABASE_CONTRIBUTOR'';
+    EXECUTE IMMEDIATE ''GRANT EXECUTE TASK ON ACCOUNT TO ROLE DATABASE_CONTRIBUTOR'';
+    EXECUTE IMMEDIATE ''GRANT CREATE TASK ON ALL SCHEMAS IN DATABASE DEV_ANCHOR_DB TO ROLE DATABASE_CONTRIBUTOR'';
+    
+    --Grant on DEV_ANALYST 
+    EXECUTE IMMEDIATE ''GRANT USAGE ON DATABASE DEV_ANCHOR_DB TO ROLE DEV_ANALYST'';
+    EXECUTE IMMEDIATE ''GRANT USAGE ON ALL SCHEMAS IN DATABASE DEV_ANCHOR_DB TO ROLE DEV_ANALYST'';
+    EXECUTE IMMEDIATE ''GRANT SELECT ON TABLE DEV_ANCHOR_DB.IRN_ANALYTICS.RECOMMENDATION TO ROLE DEV_ANALYST'';
+    EXECUTE IMMEDIATE ''GRANT USAGE ON WAREHOUSE DEV_BI_WH_XS TO ROLE DEV_ANALYST'';
+    
+    RETURN ''All grants executed successfully'';
+END;
+';
+CREATE OR REPLACE FUNCTION "SPORTIFYTEST"()
+RETURNS VARCHAR
+LANGUAGE PYTHON
+RUNTIME_VERSION = '3.8'
+PACKAGES = ('requests')
+HANDLER = 'myfun'
+EXTERNAL_ACCESS_INTEGRATIONS = (SPOTIFY_APIS_ACCESS_INTEGRATION)
+AS '
+import requests
+import base64  # No need to declare this in PACKAGES
+
+def myfun():
+    try:
+        # Spotify API token endpoint
+        token_url = "https://accounts.spotify.com/api/token"
+
+        # Spotify credentials
+        client_id = "e371eee2ae3444508e10ae5d7ce6438e"
+        client_secret = "d35e3b4accae4a23a3fdd5ca4269e621"
+
+        # Manually encode client_id:client_secret in Base64
+        auth_str = f"{client_id}:{client_secret}"
+        auth_bytes = auth_str.encode("utf-8")
+        auth_base64 = base64.b64encode(auth_bytes).decode("utf-8")
+
+        # Headers for the request
+        headers = {
+            "Authorization": f"Basic {auth_base64}",  # Base64 encoded auth
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+
+        # Request body for client credentials grant
+        data = {
+            "grant_type": "client_credentials"
+        }
+
+        # Send POST request to Spotify to get an access token
+        response = requests.post(token_url, data=data, headers=headers)
+
+        if response.status_code == 200:
+            token_data = response.json()
+            access_token = token_data.get("access_token")
+            return f"✅ Spotify Integration Active. Token: {access_token[:10000]}..."
+        else:
+            return f"❌ Auth Failed. Status: {response.status_code}, Response: {response.text}"
+
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+';
+CREATE OR REPLACE FUNCTION "SPOTIFYEXTRACT"("ID" VARCHAR, "SECRETS" VARCHAR)
+RETURNS VARCHAR
+LANGUAGE PYTHON
+RUNTIME_VERSION = '3.8'
+PACKAGES = ('requests')
+HANDLER = 'extractfun'
+EXTERNAL_ACCESS_INTEGRATIONS = (SPOTIFY_APIS_ACCESS_INTEGRATION)
+AS '
+import requests
+import base64
+import json
+ 
+def extractfun(id, secrets):
+    try:
+        # Spotify API token endpoint
+        token_url = "https://accounts.spotify.com/api/token"
+
+
+        client_id = id
+        client_secret = secrets
+        
+        # Encode client_id:client_secret in Base64
+        auth_str = f"{client_id}:{client_secret}"
+        auth_bytes = auth_str.encode("utf-8")
+        auth_base64 = base64.b64encode(auth_bytes).decode("utf-8")
+ 
+        # Headers for token request
+        headers = {
+            "Authorization": f"Basic {auth_base64}",
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+        data = {"grant_type": "client_credentials"}
+ 
+        # Get Spotify API token
+        token_response = requests.post(token_url, data=data, headers=headers)
+ 
+        if token_response.status_code != 200:
+            return f"❌ Auth Failed: {token_response.status_code}, {token_response.text}"
+ 
+        access_token = token_response.json().get("access_token")
+ 
+        # 🎵 Spotify Public Playlist ID (Change as needed)
+        playlist_id = "2fQcCfZg3QPY9RTI05kGWg"  # Today''s Top Hits Playlist
+ 
+        # API request to fetch playlist tracks
+        playlist_url = f"https://api.spotify.com/v1/playlists/2fQcCfZg3QPY9RTI05kGWg"
+        headers = {"Authorization": f"Bearer {access_token}"}
+ 
+        playlist_response = requests.get(playlist_url, headers=headers)
+ 
+        if playlist_response.status_code != 200:
+            return f"❌ Playlist Fetch Failed: {playlist_response.status_code}, {playlist_response.text}"
+ 
+
+        tracks_data = playlist_response.json().get("tracks", {}).get("items", [])
+        tracks_list = [
+             f"{track[''track''][''name'']} - {'', ''.join(artist[''name''] for artist in track[''track''][''artists''])}"
+             for track in tracks_data if track.get(''track'')
+        ]
+ 
+
+        output_list = []
+
+        # Loop through each string in the input list
+        for item in tracks_list:
+            # Split the string at the " - " separator
+            trackname, artistname = item.split(" - ")
+            
+            # Create a dictionary with the trackname and artistname
+            track_info = {
+                "trackname": trackname.strip(),
+                "artistname": artistname.strip()
+            }
+            
+            # Append the dictionary to the output list
+            output_list.append(track_info)
+        
+        return json.dumps(output_list, indent=4)
+
+ 
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+';
+CREATE OR REPLACE FUNCTION "SQUARE_THEN_MULTIPLY"("X" NUMBER(38,0))
+RETURNS NUMBER(38,0)
+LANGUAGE SQL
+AS '
+SELECT multiply_by_two(x * x)
+';
+create or replace stream AUTHORS_STREAM on table AUTHORS append_only = true;
+create or replace stream CUSTOM_FIELDS_STREAM on table CUSTOM_FIELDS append_only = true;
+create or replace stream IDENTIFIERS_STREAM on table IDENTIFIERS append_only = true;
+create or replace stream NOTES_CUSTOM_FIELDS_STREAM on table NOTES_CUSTOM_FIELDS append_only = true;
+create or replace stream NOTES_STREAM on table NOTES append_only = true;
+create or replace stream RECOMMENDATIONS_STREAM on table "DEV_ANCHOR_DB.IRN_RAW.RECOMMENDATIONS" append_only = true;
+create or replace stream SUBJECTS_STREAM on table SUBJECTS append_only = true;
+create or replace stream USERS_STREAM on table USERS append_only = true;
+create or replace schema IRN_STAGING;
+
+create or replace tag SENSITIVE_DATA_TAG ;
+create or replace sequence RUN_ID_SEQ start with 1 increment by 1 noorder;
+create or replace TABLE AUTHORS (
+	ID VARCHAR(16777216),
+	FIRST_NAME VARCHAR(16777216),
+	LAST_NAME VARCHAR(16777216),
+	ISACTIVE BOOLEAN,
+	UPDATE_USER VARCHAR(16777216),
+	UPDATE_TIMESTAMP TIMESTAMP_NTZ(9) DEFAULT CURRENT_TIMESTAMP()
+);
+create or replace TABLE CUSTOM_FIELDS (
+	ID VARCHAR(16777216),
+	CODE VARCHAR(16777216),
+	NAME VARCHAR(16777216),
+	SOURCE VARCHAR(16777216),
+	UPDATE_USER VARCHAR(16777216),
+	UPDATE_TIMESTAMP TIMESTAMP_NTZ(9) DEFAULT CURRENT_TIMESTAMP()
+);
+create or replace TABLE FLATTENED_IDENTIFIERS (
+	ID VARCHAR(16777216),
+	CUSIP VARCHAR(16777216),
+	ENTITY_ID VARCHAR(16777216),
+	ISIN VARCHAR(16777216),
+	NAME VARCHAR(16777216),
+	SEDOL VARCHAR(16777216),
+	TICKER VARCHAR(16777216),
+	UPDATE_USER VARCHAR(16777216),
+	UPDATE_TIMESTAMP TIMESTAMP_NTZ(9) DEFAULT CURRENT_TIMESTAMP()
+);
+create or replace TABLE IDENTIFIERS (
+	ID VARCHAR(16777216),
+	CUSIP VARCHAR(16777216),
+	ENTITY_ID VARCHAR(16777216),
+	ISIN VARCHAR(16777216),
+	NAME VARCHAR(16777216),
+	SEDOL VARCHAR(16777216),
+	TICKER VARCHAR(16777216),
+	UPDATE_USER VARCHAR(16777216),
+	UPDATE_TIMESTAMP TIMESTAMP_NTZ(9) DEFAULT CURRENT_TIMESTAMP()
+);
+create or replace TABLE NOTES (
+	ID VARCHAR(50),
+	NOTE_DATE DATE,
+	AUTHOR_ID VARCHAR(50),
+	TITLE VARCHAR(255),
+	IDENTIFIER VARCHAR(50),
+	CONTRIBUTOR_ID VARCHAR(50),
+	RECOMMENDATION_ID VARCHAR(50),
+	SUBJECT_ID VARCHAR(50),
+	CREATED_AT TIMESTAMP_NTZ(9),
+	UPDATE_USER VARCHAR(50),
+	UPDATE_TIMESTAMP TIMESTAMP_NTZ(9) DEFAULT CURRENT_TIMESTAMP()
+);
+create or replace TABLE NOTES_CUSTOM_FIELDS (
+	ID VARCHAR(50),
+	CODE VARCHAR(50),
+	VALUE VARCHAR(255),
+	OPTION VARCHAR(255),
+	UPDATE_USER VARCHAR(50),
+	UPDATE_TIMESTAMP TIMESTAMP_NTZ(9) DEFAULT CURRENT_TIMESTAMP()
+);
+create or replace TABLE PROCESS_LOG (
+	SP_NAME VARCHAR(16777216),
+	TABLE_NAME VARCHAR(16777216),
+	STATUS VARCHAR(16777216),
+	RAW_COUNT NUMBER(38,0),
+	STG_COUNT NUMBER(38,0),
+	START_TIME TIMESTAMP_NTZ(9),
+	END_TIME TIMESTAMP_NTZ(9),
+	PROCESS_FLOW VARCHAR(16777216),
+	MESSAGE VARCHAR(16777216)
+);
+create or replace TABLE RECOMMENDATIONS (
+	ID VARCHAR(16777216),
+	NAME VARCHAR(16777216),
+	CODE NUMBER(38,0),
+	UPDATE_USER VARCHAR(16777216),
+	UPDATE_TIMESTAMP TIMESTAMP_NTZ(9) DEFAULT CURRENT_TIMESTAMP()
+);
+create or replace TABLE SUBJECTS (
+	ID VARCHAR(50),
+	CODE VARCHAR(50),
+	NAME VARCHAR(100),
+	UPDATE_USER VARCHAR(16777216),
+	UPDATE_TIMESTAMP TIMESTAMP_NTZ(9) DEFAULT CURRENT_TIMESTAMP()
+);
+create or replace TABLE USERS (
+	ID VARCHAR(50),
+	SERIAL_NUMBER VARCHAR(50),
+	FIRST_NAME VARCHAR(100),
+	LAST_NAME VARCHAR(100),
+	EMAIL_ADDRESS VARCHAR(100),
+	UPDATE_USER VARCHAR(50),
+	UPDATE_TIMESTAMP TIMESTAMP_NTZ(9) DEFAULT CURRENT_TIMESTAMP()
+);
+create or replace view CUSTOMFIELDS_VW(
+	CUSTOMFIELDID,
+	FIELDORDER,
+	FIELDNAME,
+	FIELDDESCRIPTION,
+	MODIFIED,
+	FIELDTYPE,
+	SPLITTYPE,
+	ISHIDDEN,
+	MANDATORY,
+	DECIMALS,
+	FIELDFORMULA,
+	ISSCREENING,
+	ISCALCULATED,
+	FIELDOPTIONS,
+	MULTIFIELDOPTIONS,
+	ISALTERNATIVETONOTEFIELD
+) as
+SELECT 
+    CUSTOMFIELDID,
+    FIELDORDER,
+    FIELDNAME,
+    FIELDDESCRIPTION,
+    MODIFIED,
+    FIELDTYPE,
+    SPLITTYPE,
+    ISHIDDEN,
+    MANDATORY,
+    DECIMALS,
+    FIELDFORMULA,
+    ISSCREENING,
+    ISCALCULATED,
+    FIELDOPTIONS,
+    MULTIFIELDOPTIONS,
+    ISALTERNATIVETONOTEFIELD
+FROM FACSTSET_IRNDB.IRN.CUSTOMFIELDS;
+create or replace view CUSTOMFIELDVALUES_VW(
+	CUSTOMFIELDVALUEID,
+	CUSTOMFIELDID,
+	NOTEID,
+	MEETINGID,
+	TEXTVALUE,
+	HIGHPRECISIONVALUE,
+	INTEGERVALUE,
+	DATEVALUE,
+	EXTENDEDTEXTVALUE
+) as
+SELECT 
+    CUSTOMFIELDVALUEID,
+    CUSTOMFIELDID,
+    NOTEID,
+    MEETINGID,
+    TEXTVALUE,
+    HIGHPRECISIONVALUE,
+    INTEGERVALUE,
+    DATEVALUE,
+    EXTENDEDTEXTVALUE
+FROM FACSTSET_IRNDB.IRN.CUSTOMFIELDVALUES;
+create or replace view NOTES_VW(
+	NOTEID,
+	NOTEDATE,
+	CREATED,
+	AUTHOR,
+	CONTRIBUTOR,
+	TITLE,
+	NOTEBODY,
+	IDENTIFIER,
+	SUBJECT,
+	RECOMMENDATION,
+	SENTIMENT,
+	SOURCE,
+	LINK,
+	ISPERSONAL,
+	APPROVALSTATUS,
+	APPROVALSTATUSMODIFIED
+) as
+SELECT 
+    NOTEID,
+    NOTEDATE,
+    CREATED,
+    AUTHOR,
+    CONTRIBUTOR,
+    TITLE,
+    NOTEBODY,
+    IDENTIFIER,
+    SUBJECT,
+    RECOMMENDATION,
+    SENTIMENT,
+    SOURCE,
+    LINK,
+    ISPERSONAL,
+    APPROVALSTATUS,
+    APPROVALSTATUSMODIFIED
+FROM FACSTSET_IRNDB.IRN.NOTES;
+CREATE OR REPLACE PROCEDURE "AUTHORS_FULL_LOAD"()
+RETURNS VARCHAR
+LANGUAGE JAVASCRIPT
+EXECUTE AS CALLER
+AS '
+try {
+    // Step 1: Log "Started" for Internal Stage → Raw
+    try {
+        let logStartSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''AUTHORS_FULL_LOAD'', ''AUTHORS'', ''Started'', 
+            NULL, NULL, ''Internal Stage → Raw'', ''Process started'' );`;
+        snowflake.execute({ sqlText: logStartSQL });
+    } catch (err) {
+        return "Logging failed: " + err.message;
+    }
+
+    // Step 2: Load new data into IRN_RAW.AUTHORS
+    try {
+        let loadRawDataSQL = `COPY INTO IRN_RAW.AUTHORS FROM (
+            SELECT PARSE_JSON($1) AS data, METADATA$FILENAME AS file_name, CURRENT_TIMESTAMP() AS event_time 
+            FROM @DEV_ANCHOR_DB.IRN_RAW.FACTSET_API_STG/AUTHOR
+        ) FILE_FORMAT = (TYPE = ''JSON'') PATTERN = ''.*.json'';`;
+        snowflake.execute({ sqlText: loadRawDataSQL });
+    } catch (err) {
+        let logErrorSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''AUTHORS_FULL_LOAD'', ''AUTHORS'', ''Error'', 
+            NULL, NULL, ''Internal Stage → Raw'', ''COPY INTO failed: '' || REPLACE(err.message, '''', '''''') || '' '' );`;
+        snowflake.execute({ sqlText: logErrorSQL });
+        return "Error in COPY INTO: " + err.message;
+    }
+
+    // Step 3: Get raw record count
+    let newDataCount = 0;
+    try {
+        let checkNewDataSQL = `SELECT COUNT(*) FROM IRN_RAW.AUTHORS_STREAM WHERE METADATA$ACTION = ''INSERT'';`;
+        let result = snowflake.execute({ sqlText: checkNewDataSQL });
+        newDataCount = result.next() ? result.getColumnValue(1) : 0;
+    } catch (err) {
+        return "Error counting new data: " + err.message;
+    }
+
+    // Step 4: Log Completion for Internal Stage → Raw
+    try {
+        let logRawCompleteSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''AUTHORS_FULL_LOAD'', ''AUTHORS'', ''Completed'', 
+            ` + newDataCount + `, NULL, ''Internal Stage → Raw'', 
+            ''` + (newDataCount > 0 ? "Data successfully loaded into RAW" : "No new data found in stream") + `'' );`;
+        snowflake.execute({ sqlText: logRawCompleteSQL });
+    } catch (err) {
+        return "Logging completion failed: " + err.message;
+    }
+
+    let stagingCount = 0;
+
+    if (newDataCount > 0) {
+        // Step 5: Log "Started" for Raw → Staging
+        try {
+            let logStagingStartSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+                ''AUTHORS_FULL_LOAD'', ''AUTHORS'', ''Started'', 
+                ` + newDataCount + `, NULL, ''Raw → Staging'', ''Moving data to staging'' );`;
+            snowflake.execute({ sqlText: logStagingStartSQL });
+        } catch (err) {
+            return "Logging staging start failed: " + err.message;
+        }
+
+        // Step 6: Delete existing records from staging
+        try {
+            snowflake.execute({ sqlText: `DELETE FROM IRN_STAGING.AUTHORS;` });
+        } catch (err) {
+            return "Error in DELETE FROM staging: " + err.message;
+        }
+
+        // Step 7: Move new data from raw → staging
+        try {
+            let insertIntoStagingSQL = `INSERT INTO IRN_STAGING.AUTHORS (
+                id, first_name, last_name, isactive, update_user
+            ) SELECT 
+                f.value:id::VARCHAR AS id,
+                f.value:firstName::VARCHAR AS first_name,
+                f.value:lastName::VARCHAR AS last_name,
+                f.value:isActive::BOOLEAN AS isactive,
+                ''BATCH_LOAD'' AS update_user
+            FROM IRN_RAW.AUTHORS_STREAM AUTHOR, 
+            LATERAL FLATTEN(INPUT => AUTHOR.data) f;`;
+            snowflake.execute({ sqlText: insertIntoStagingSQL });
+        } catch (err) {
+            return "Error in INSERT INTO staging: " + err.message;
+        }
+
+        // Step 8: Get staging record count
+        try {
+            let stagingCountResult = snowflake.execute({ sqlText: `SELECT COUNT(*) FROM IRN_STAGING.AUTHORS;` });
+            stagingCount = stagingCountResult.next() ? stagingCountResult.getColumnValue(1) : 0;
+        } catch (err) {
+            return "Error in staging count: " + err.message;
+        }
+
+        // Step 9: Log Completion for Raw → Staging
+        try {
+            let logStagingCompleteSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+                ''AUTHORS_FULL_LOAD'', ''AUTHORS'', ''Completed'', 
+                ` + newDataCount + `, ` + stagingCount + `, ''Raw → Staging'', 
+                ''Data successfully moved to staging'' );`;
+            snowflake.execute({ sqlText: logStagingCompleteSQL });
+        } catch (err) {
+            return "Logging staging completion failed: " + err.message;
+        }
+    }
+
+    return (newDataCount > 0) ? "Data successfully moved to staging." : "No new data found.";
+} 
+catch (err) {
+    return "Unexpected error: " + err.message;
+}
+';
+CREATE OR REPLACE PROCEDURE "CUSTOM_FIELDS_FULL_LOAD"()
+RETURNS VARCHAR
+LANGUAGE JAVASCRIPT
+EXECUTE AS CALLER
+AS '
+try {
+    // Step 1: Log "Started" for Internal Stage → Raw
+    try {
+        let logStartSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''CUSTOM_FIELDS_FULL_LOAD'', ''CUSTOM_FIELDS'', ''Started'', 
+            NULL, NULL, ''Internal Stage → Raw'', ''Process started'' );`;
+        snowflake.execute({ sqlText: logStartSQL });
+    } catch (err) {
+        return "Logging failed: " + err.message;
+    }
+
+    // Step 2: Load new data into IRN_RAW.CUSTOM_FIELDS
+    try {
+        let loadRawDataSQL = `COPY INTO IRN_RAW.CUSTOM_FIELDS FROM (
+            SELECT PARSE_JSON($1) AS data, METADATA$FILENAME AS file_name, CURRENT_TIMESTAMP() AS event_time 
+            FROM @DEV_ANCHOR_DB.IRN_RAW.FACTSET_API_STG/CUSTOM_FIELDS
+        ) FILE_FORMAT = (TYPE = ''JSON'') PATTERN = ''.*.json'';`;
+        snowflake.execute({ sqlText: loadRawDataSQL });
+    } catch (err) {
+        let logErrorSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''CUSTOM_FIELDS_FULL_LOAD'', ''CUSTOM_FIELDS'', ''Error'', 
+            NULL, NULL, ''Internal Stage → Raw'', ''COPY INTO failed: '' || REPLACE(err.message, '''', '''''') || '' '' );`;
+        snowflake.execute({ sqlText: logErrorSQL });
+        return "Error in COPY INTO: " + err.message;
+    }
+
+    // Step 3: Get raw record count
+    let newDataCount = 0;
+    try {
+        let checkNewDataSQL = `SELECT COUNT(*) FROM IRN_RAW.CUSTOM_FIELDS_STREAM WHERE METADATA$ACTION = ''INSERT'';`;
+        let result = snowflake.execute({ sqlText: checkNewDataSQL });
+        newDataCount = result.next() ? result.getColumnValue(1) : 0;
+    } catch (err) {
+        return "Error counting new data: " + err.message;
+    }
+
+    // Step 4: Log Completion for Internal Stage → Raw
+    try {
+        let logRawCompleteSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''CUSTOM_FIELDS_FULL_LOAD'', ''CUSTOM_FIELDS'', ''Completed'', 
+            ` + newDataCount + `, NULL, ''Internal Stage → Raw'', 
+            ''` + (newDataCount > 0 ? "Data successfully loaded into RAW" : "No new data found in stream") + `'' );`;
+        snowflake.execute({ sqlText: logRawCompleteSQL });
+    } catch (err) {
+        return "Logging completion failed: " + err.message;
+    }
+
+    let stagingCount = 0;
+
+    if (newDataCount > 0) {
+        // Step 5: Log "Started" for Raw → Staging
+        try {
+            let logStagingStartSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+                ''CUSTOM_FIELDS_FULL_LOAD'', ''CUSTOM_FIELDS'', ''Started'', 
+                ` + newDataCount + `, NULL, ''Raw → Staging'', ''Moving data to staging'' );`;
+            snowflake.execute({ sqlText: logStagingStartSQL });
+        } catch (err) {
+            return "Logging staging start failed: " + err.message;
+        }
+
+        // Step 6: Delete existing records from staging
+        try {
+            snowflake.execute({ sqlText: `DELETE FROM IRN_STAGING.CUSTOM_FIELDS;` });
+        } catch (err) {
+            return "Error in DELETE FROM staging: " + err.message;
+        }
+
+        // Step 7: Move new data from raw → staging
+        try {
+            let insertIntoStagingSQL = `INSERT INTO IRN_STAGING.CUSTOM_FIELDS (
+                id, code, name, source, update_user
+            ) SELECT 
+                f.value:id::VARCHAR AS id,
+                f.value:code::VARCHAR AS code,
+                f.value:name::VARCHAR AS name,
+                f.value:source::VARCHAR AS source,
+                ''BATCH_LOAD'' AS update_user
+            FROM IRN_RAW.CUSTOM_FIELDS_STREAM CUSTOM_FIELDS, 
+            LATERAL FLATTEN(INPUT => CUSTOM_FIELDS.data) f;`;
+            snowflake.execute({ sqlText: insertIntoStagingSQL });
+        } catch (err) {
+            return "Error in INSERT INTO staging: " + err.message;
+        }
+
+        // Step 8: Get staging record count
+        try {
+            let stagingCountResult = snowflake.execute({ sqlText: `SELECT COUNT(*) FROM IRN_STAGING.CUSTOM_FIELDS;` });
+            stagingCount = stagingCountResult.next() ? stagingCountResult.getColumnValue(1) : 0;
+        } catch (err) {
+            return "Error in staging count: " + err.message;
+        }
+
+        // Step 9: Log Completion for Raw → Staging
+        try {
+            let logStagingCompleteSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+                ''CUSTOM_FIELDS_FULL_LOAD'', ''CUSTOM_FIELDS'', ''Completed'', 
+                ` + newDataCount + `, ` + stagingCount + `, ''Raw → Staging'', 
+                ''Data successfully moved to staging'' );`;
+            snowflake.execute({ sqlText: logStagingCompleteSQL });
+        } catch (err) {
+            return "Logging staging completion failed: " + err.message;
+        }
+    }
+
+    return (newDataCount > 0) ? "Data successfully moved to staging." : "No new data found.";
+} 
+catch (err) {
+    return "Unexpected error: " + err.message;
+}
+';
+CREATE OR REPLACE PROCEDURE "IDENTIFIERS_FULL_LOAD"()
+RETURNS VARCHAR
+LANGUAGE JAVASCRIPT
+EXECUTE AS CALLER
+AS '
+try {
+    // Step 1: Log "Started" for Internal Stage → Raw
+    try {
+        let logStartSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''IDENTIFIERS_FULL_LOAD'', ''IDENTIFIERS'', ''Started'', 
+            NULL, NULL, ''Internal Stage → Raw'', ''Process started'' );`;
+        snowflake.execute({ sqlText: logStartSQL });
+    } catch (err) {
+        return "Logging failed: " + err.message;
+    }
+
+    // Step 2: Load new data into IRN_RAW.IDENTIFIERS
+    try {
+        let loadRawDataSQL = `COPY INTO IRN_RAW.IDENTIFIERS FROM (
+            SELECT PARSE_JSON($1) AS data, METADATA$FILENAME AS file_name, CURRENT_TIMESTAMP() AS event_time 
+            FROM @DEV_ANCHOR_DB.IRN_RAW.FACTSET_API_STG/IDENTIFIERS
+        ) FILE_FORMAT = (TYPE = ''JSON'') PATTERN = ''.*.json'';`;
+        snowflake.execute({ sqlText: loadRawDataSQL });
+    } catch (err) {
+        let logErrorSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''IDENTIFIERS_FULL_LOAD'', ''IDENTIFIERS'', ''Error'', 
+            NULL, NULL, ''Internal Stage → Raw'', ''COPY INTO failed: ${err.message.replace(/''/g, "''''")}'' );`;
+        snowflake.execute({ sqlText: logErrorSQL });
+        return "Error in COPY INTO: " + err.message;
+    }
+
+    // Step 3: Get raw record count
+    let newDataCount = 0;
+    try {
+        let checkNewDataSQL = `SELECT COUNT(*) FROM IRN_RAW.IDENTIFIERS_STREAM WHERE METADATA$ACTION = ''INSERT'';`;
+        let result = snowflake.execute({ sqlText: checkNewDataSQL });
+        if (result.next()) {
+            newDataCount = result.getColumnValue(1);
+        }
+    } catch (err) {
+        return "Error counting new data: " + err.message;
+    }
+
+    // Step 4: Log Completion for Internal Stage → Raw
+    try {
+        let logRawCompleteSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''IDENTIFIERS_FULL_LOAD'', ''IDENTIFIERS'', ''Completed'', 
+            ${newDataCount}, NULL, ''Internal Stage → Raw'', 
+            ''${newDataCount > 0 ? "Data successfully loaded into RAW" : "No new data found in stream"}'' );`;
+        snowflake.execute({ sqlText: logRawCompleteSQL });
+    } catch (err) {
+        return "Logging completion failed: " + err.message;
+    }
+
+    let stagingCount = 0;
+
+    if (newDataCount > 0) {
+        // Step 5: Log "Started" for Raw → Staging
+        try {
+            let logStagingStartSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+                ''IDENTIFIERS_FULL_LOAD'', ''IDENTIFIERS'', ''Started'', 
+                ${newDataCount}, NULL, ''Raw → Staging'', ''Moving data to staging'' );`;
+            snowflake.execute({ sqlText: logStagingStartSQL });
+        } catch (err) {
+            return "Logging staging start failed: " + err.message;
+        }
+
+        // Step 6: Delete existing records from staging
+        try {
+            snowflake.execute({ sqlText: `DELETE FROM IRN_STAGING.IDENTIFIERS;` });
+        } catch (err) {
+            return "Error in DELETE FROM staging: " + err.message;
+        }
+
+        // Step 7: Move new data from raw → staging
+        try {
+            let insertIntoStagingSQL = `INSERT INTO IRN_STAGING.IDENTIFIERS (
+                id, cusip, entity_Id, isin, name, sedol, ticker, update_user
+            ) SELECT 
+                f.value:query::VARCHAR AS id, 
+                f.value:instrumentMetadata.cusip::VARCHAR AS cusip,
+                f.value:instrumentMetadata.entityId::VARCHAR AS entity_Id,
+                f.value:instrumentMetadata.isin::VARCHAR AS isin,
+                f.value:instrumentMetadata.name::VARCHAR AS name,
+                f.value:instrumentMetadata.sedol::VARCHAR AS sedol,
+                f.value:instrumentMetadata.ticker::VARCHAR AS ticker,
+                ''BATCH_LOAD'' AS update_user
+            FROM IRN_RAW.IDENTIFIERS_STREAM IDENTIFIER, 
+            LATERAL FLATTEN(INPUT => IDENTIFIER.data) f;`;
+            snowflake.execute({ sqlText: insertIntoStagingSQL });
+        } catch (err) {
+            return "Error in INSERT INTO staging: " + err.message;
+        }
+
+        // Step 8: Get staging record count
+        try {
+            let stagingCountResult = snowflake.execute({ sqlText: `SELECT COUNT(*) FROM IRN_STAGING.IDENTIFIERS;` });
+            if (stagingCountResult.next()) {
+                stagingCount = stagingCountResult.getColumnValue(1);
+            }
+        } catch (err) {
+            return "Error in staging count: " + err.message;
+        }
+
+        // Step 9: Log Completion for Raw → Staging
+        try {
+            let logStagingCompleteSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+                ''IDENTIFIERS_FULL_LOAD'', ''IDENTIFIERS'', ''Completed'', 
+                ${newDataCount}, ${stagingCount}, ''Raw → Staging'', 
+                ''Data successfully moved to staging'' );`;
+            snowflake.execute({ sqlText: logStagingCompleteSQL });
+        } catch (err) {
+            return "Logging staging completion failed: " + err.message;
+        }
+    }
+
+    return (newDataCount > 0) ? "Data successfully moved to staging." : "No new data found.";
+} 
+catch (err) {
+    return "Unexpected error: " + err.message;
+}
+';
+CREATE OR REPLACE PROCEDURE "IDENTIFIERS_FULL_LOAD_DQ"()
+RETURNS VARCHAR
+LANGUAGE SQL
+EXECUTE AS CALLER
+AS '
+DECLARE
+    new_raw_count INTEGER;
+    ERR_CODE INTEGER;
+    ERR_STATE STRING;
+    ERR_MSG STRING;
+    ERR_LINE INTEGER;
+BEGIN
+    -- Step 1: Log "Started" for Internal Stage → Raw
+    CALL DEV_ANCHOR_DB.IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+        ''IDENTIFIERS_FULL_LOAD_DQ'', ''IDENTIFIERS'', ''Started'', 
+        NULL, NULL, ''Internal Stage → Raw'', ''Process started''
+    );
+
+    -- Step 2: Load new data into IRN_RAW.IDENTIFIERS
+    COPY INTO IRN_RAW.IDENTIFIERS 
+    FROM (
+        SELECT PARSE_JSON($1) AS data, METADATA$FILENAME AS file_name, CURRENT_TIMESTAMP() AS event_time 
+        FROM @DEV_ANCHOR_DB.IRN_RAW.FACTSET_API_STG/IDENTIFIERS
+    ) 
+    FILE_FORMAT = (TYPE = ''JSON'') 
+    PATTERN = ''.*.json'';
+
+    -- Get count of new records
+    SELECT COUNT(*) 
+    INTO :new_raw_count 
+    FROM IRN_RAW.IDENTIFIERS_STREAM 
+    WHERE METADATA$ACTION = ''INSERT'';
+
+    -- Step 3: Log count of new data in RAW using stream
+    CALL DEV_ANCHOR_DB.IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+        ''IDENTIFIERS_FULL_LOAD_DQ'', ''IDENTIFIERS'', ''Completed'', 
+        :new_raw_count, 
+        NULL, ''Internal Stage → Raw'', 
+        CASE 
+            WHEN :new_raw_count > 0 THEN ''Data successfully loaded into RAW'' 
+            ELSE ''No new data found in RAW'' 
+        END
+    );
+
+    -- Only proceed with staging operations if we have new data
+    IF (:new_raw_count > 0) THEN
+        -- Step 4: Log "Started" for Raw → Staging
+        CALL DEV_ANCHOR_DB.IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''IDENTIFIERS_FULL_LOAD_DQ'', ''FLATTENED_IDENTIFIERS'', ''Started'', 
+            NULL, NULL, ''Raw → Staging'', ''Process started''
+        );
+
+        -- Step 5: Delete existing staging data
+        DELETE FROM IRN_STAGING.FLATTENED_IDENTIFIERS;
+
+        -- Step 6: Move new data from raw → staging
+        INSERT INTO IRN_STAGING.FLATTENED_IDENTIFIERS (
+            id, cusip, entity_Id, isin, name, sedol, ticker, update_user
+        ) 
+        SELECT 
+            f.value:query::VARCHAR AS id, 
+            f.value:instrumentMetadata.cusip::VARCHAR AS cusip,
+            f.value:instrumentMetadata.entityId::VARCHAR AS entity_Id,
+            f.value:instrumentMetadata.isin::VARCHAR AS isin,
+            f.value:instrumentMetadata.name::VARCHAR AS name,
+            f.value:instrumentMetadata.sedol::VARCHAR AS sedol,
+            f.value:instrumentMetadata.ticker::VARCHAR AS ticker,
+            ''BATCH_LOAD'' AS update_user
+        FROM IRN_RAW.IDENTIFIERS_STREAM IDENTIFIER, 
+        LATERAL FLATTEN(INPUT => IDENTIFIER.data) f
+        WHERE IDENTIFIER.METADATA$ACTION = ''INSERT'';
+
+        -- Step 7: Log Completion for Raw → Staging
+        CALL DEV_ANCHOR_DB.IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''IDENTIFIERS_FULL_LOAD_DQ'', ''FLATTENED_IDENTIFIERS'', ''Completed'', 
+            :new_raw_count,
+            (SELECT COUNT(*) FROM IRN_STAGING.FLATTENED_IDENTIFIERS), 
+            ''Raw → Staging'', 
+            CASE 
+                WHEN (SELECT COUNT(*) FROM IRN_STAGING.FLATTENED_IDENTIFIERS) > 0 
+                THEN ''Data successfully moved to staging'' 
+                ELSE ''No new data inserted into staging'' 
+            END
+        );
+
+        -- Step 8: Log "Started" for DQ Audit Process
+        CALL DEV_ANCHOR_DB.IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''IDENTIFIERS_FULL_LOAD_DQ'', ''DQ_AUDIT'', ''Started'', 
+            NULL, NULL, ''DQ Audit Process'', ''Process started''
+        );
+
+        -- Step 9: Perform DQ validation
+        INSERT INTO DEV_ANCHOR_DB.IRN_LOG.DQ_AUDIT (
+            ERROR_KEY, ERROR_VALUE, FILE_NAME, UPDATE_TIMESTAMP
+        )
+        SELECT 
+            CASE  
+                WHEN ISIN IS NOT NULL AND LENGTH(ISIN) > 12 AND SEDOL IS NOT NULL AND LENGTH(SEDOL) > 10 THEN ISIN || '', '' || SEDOL
+                WHEN ISIN IS NOT NULL AND LENGTH(ISIN) > 12 THEN ISIN
+                WHEN SEDOL IS NOT NULL AND LENGTH(SEDOL) > 10 THEN SEDOL
+                WHEN ENTITY_ID IS NULL THEN ID
+            END AS ERROR_KEY,
+            CASE 
+                WHEN ISIN IS NOT NULL AND LENGTH(ISIN) > 12 AND SEDOL IS NOT NULL AND LENGTH(SEDOL) > 10 THEN ''ISIN exceeds 12 characters, SEDOL exceeds 10 characters''
+                WHEN ISIN IS NOT NULL AND LENGTH(ISIN) > 12 THEN ''ISIN exceeds 12 characters''
+                WHEN SEDOL IS NOT NULL AND LENGTH(SEDOL) > 10 THEN ''SEDOL exceeds 10 characters''
+                WHEN ENTITY_ID IS NULL THEN ''ENTITY_ID Missing''
+            END AS ERROR_VALUE,
+            (SELECT FILE_NAME FROM DEV_ANCHOR_DB.IRN_RAW.IDENTIFIERS ORDER BY EVENT_TIME DESC LIMIT 1) AS FILE_NAME,
+            CURRENT_TIMESTAMP() AS UPDATE_TIMESTAMP
+        FROM IRN_STAGING.FLATTENED_IDENTIFIERS
+        WHERE (ISIN IS NOT NULL AND LENGTH(ISIN) > 12) 
+        OR (SEDOL IS NOT NULL AND LENGTH(SEDOL) > 10)
+        OR ENTITY_ID IS NULL;
+
+        -- Step 10: Log Completed for DQ Audit Process
+        CALL DEV_ANCHOR_DB.IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''IDENTIFIERS_FULL_LOAD_DQ'', ''DQ_AUDIT'', ''Completed'', 
+            -1, 
+            -1, 
+            ''DQ Audit Process'', 
+            ''DQ completed; Error Record count: '' || (
+                SELECT COUNT(*) 
+                FROM IRN_STAGING.FLATTENED_IDENTIFIERS 
+                WHERE (ISIN IS NOT NULL AND LENGTH(ISIN) > 12)
+                OR (SEDOL IS NOT NULL AND LENGTH(SEDOL) > 10)
+                OR ENTITY_ID IS NULL
+            )::VARCHAR
+        );
+
+        -- Step 11: Log Started for flattened_identifier → identifier
+        CALL DEV_ANCHOR_DB.IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''IDENTIFIERS_FULL_LOAD_DQ'', ''IDENTIFIERS'', ''Started'', 
+            NULL, NULL, ''flattened_identifier → identifier'', ''Process started''
+        );
+
+        -- Step 12: Delete existing staging data
+        DELETE FROM IRN_STAGING.IDENTIFIERS;
+
+        -- Step 13: Insert cleansed records
+        INSERT INTO IRN_STAGING.IDENTIFIERS (
+            id, cusip, entity_Id, isin, name, sedol, ticker, update_user
+        ) 
+        SELECT id, cusip, entity_Id, isin, name, sedol, ticker, update_user
+        FROM IRN_STAGING.FLATTENED_IDENTIFIERS
+        WHERE (ISIN IS NULL OR LENGTH(ISIN) <= 12)
+        AND (SEDOL IS NULL OR LENGTH(SEDOL) <= 10)
+        AND ENTITY_ID IS NOT NULL;
+
+        -- Step 14: Log completed
+        CALL DEV_ANCHOR_DB.IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''IDENTIFIERS_FULL_LOAD_DQ'', ''IDENTIFIERS'', ''Completed'', 
+            NULL, 
+            (SELECT COUNT(*) FROM IRN_STAGING.IDENTIFIERS), 
+            ''flattened_identifier → identifier'', 
+            CASE 
+                WHEN (SELECT COUNT(*) FROM IRN_STAGING.IDENTIFIERS) > 0 
+                THEN ''Data successfully moved to staging'' 
+                ELSE ''No new data inserted into staging'' 
+            END
+        );
+    ELSE
+        -- Log skipping operations
+        CALL DEV_ANCHOR_DB.IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''IDENTIFIERS_FULL_LOAD_DQ'', ''IDENTIFIERS'', ''Completed'', 
+            0,
+            NULL, 
+            ''Staging Operations'', 
+            ''Skipped all staging operations - no new data to process''
+        );
+    END IF;
+
+    RETURN ''Code Executed Successfully'';
+
+EXCEPTION
+    WHEN OTHER THEN
+      ERR_MSG := SQLERRM;
+		            INSERT INTO IRN_STAGING.PROCESS_LOG (
+                SP_NAME, TABLE_NAME, STATUS, RAW_COUNT, STG_COUNT, 
+                PROCESS_FLOW, MESSAGE, START_TIME
+            )
+            VALUES (
+                ''IDENTIFIERS_FULL_LOAD_DQ'', ''IDENTIFIERS'', ''Error'', null, null, 
+                ''Failure'', :ERR_MSG, CURRENT_TIMESTAMP()
+            );
+        RETURN ''Error occurred1: '' || SQLSTATE || '' (Code: '' || SQLCODE || '', Msg: '' || SQLERRM || '')'';
+END;
+';
+CREATE OR REPLACE PROCEDURE "IDENTIFIERS_FULL_LOAD_V2"()
+RETURNS VARCHAR
+LANGUAGE SQL
+EXECUTE AS CALLER
+AS '
+BEGIN
+    -- Step 1: Log "Started" for Internal Stage → Raw
+    CALL DEV_ANCHOR_DB.IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+        ''IDENTIFIERS_FULL_LOAD_V2'', ''IDENTIFIERS'', ''Started'', 
+        NULL, NULL, ''Internal Stage → Raw'', ''Process started''
+    );
+
+    -- Step 2: Load new data into IRN_RAW.IDENTIFIERS
+    COPY INTO IRN_RAW.IDENTIFIERS 
+    FROM (
+        SELECT 
+            PARSE_JSON($1) AS data, 
+            METADATA$FILENAME AS file_name, 
+            CURRENT_TIMESTAMP() AS event_time 
+        FROM @DEV_ANCHOR_DB.IRN_RAW.FACTSET_API_STG/IDENTIFIERS
+    ) 
+    FILE_FORMAT = (TYPE = ''JSON'') 
+    PATTERN = ''.*.json'';
+
+    -- Step 3: Check if there''s new data and log count
+    DECLARE
+        new_raw_count INTEGER;
+    BEGIN
+        SELECT COUNT(*) 
+        INTO :new_raw_count 
+        FROM IRN_RAW.IDENTIFIERS_STREAM 
+        WHERE METADATA$ACTION = ''INSERT'';
+
+        CALL DEV_ANCHOR_DB.IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''IDENTIFIERS_FULL_LOAD_V2'', ''IDENTIFIERS'', ''Completed'', 
+            :new_raw_count, 
+            NULL, ''Internal Stage → Raw'', 
+            CASE 
+                WHEN :new_raw_count > 0 THEN ''Data successfully loaded into RAW'' 
+                ELSE ''No new data found in RAW'' 
+            END
+        );
+
+        -- Only proceed with staging operations if we have new data
+        IF (:new_raw_count > 0) THEN
+            -- Step 4: Log "Started" for Raw → Staging
+            CALL DEV_ANCHOR_DB.IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+                ''IDENTIFIERS_FULL_LOAD_V2'', ''IDENTIFIERS'', ''Started'', 
+                NULL, NULL, ''Raw → Staging'', ''Process started''
+            );
+
+            -- Step 5: Delete existing staging data ONLY if we have new data
+            DELETE FROM IRN_STAGING.IDENTIFIERS;
+
+            -- Step 6: Move new data from raw → staging
+            INSERT INTO IRN_STAGING.IDENTIFIERS (
+                id, cusip, entity_Id, isin, name, sedol, ticker, update_user
+            ) 
+            SELECT 
+                f.value:query::VARCHAR AS id, 
+                f.value:instrumentMetadata.cusip::VARCHAR AS cusip,
+                f.value:instrumentMetadata.entityId::VARCHAR AS entity_Id,
+                f.value:instrumentMetadata.isin::VARCHAR AS isin,
+                f.value:instrumentMetadata.name::VARCHAR AS name,
+                f.value:instrumentMetadata.sedol::VARCHAR AS sedol,
+                f.value:instrumentMetadata.ticker::VARCHAR AS ticker,
+                ''BATCH_LOAD'' AS update_user
+            FROM IRN_RAW.IDENTIFIERS_STREAM IDENTIFIER, 
+            LATERAL FLATTEN(INPUT => IDENTIFIER.data) f
+            WHERE IDENTIFIER.METADATA$ACTION = ''INSERT'';
+
+            -- Step 7: Log Completion for Raw → Staging
+            CALL DEV_ANCHOR_DB.IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+                ''IDENTIFIERS_FULL_LOAD_V2'', ''IDENTIFIERS'', ''Completed'', 
+                :new_raw_count,
+                (SELECT COUNT(*) FROM IRN_STAGING.IDENTIFIERS), 
+                ''Raw → Staging'', 
+                ''Data successfully moved to staging''
+            );
+        ELSE
+            -- Log that we''re skipping staging operations due to no new data
+            CALL DEV_ANCHOR_DB.IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+                ''IDENTIFIERS_FULL_LOAD_V2'', ''IDENTIFIERS'', ''Completed'', 
+                0,
+                (SELECT COUNT(*) FROM IRN_STAGING.IDENTIFIERS), 
+                ''Raw → Staging'', 
+                ''Skipped staging operations - no new data to process''
+            );
+        END IF;
+    END;
+
+    RETURN ''Code Executed Successfully'';
+END;
+';
+CREATE OR REPLACE PROCEDURE "LOG_PROCEDURE_EXECUTION"("PROC_NAME" VARCHAR, "TABLE_NAME" VARCHAR, "PROC_ACTION" VARCHAR, "RAW_COUNT" NUMBER(38,0), "STG_COUNT" NUMBER(38,0), "PROCESS_FLOW" VARCHAR, "MESSAGE" VARCHAR)
+RETURNS VARCHAR
+LANGUAGE SQL
+EXECUTE AS CALLER
+AS '
+DECLARE 
+    ERR_CODE INTEGER;
+    ERR_STATE STRING;
+    ERR_MSG STRING;
+BEGIN
+    BEGIN
+        -- Try to insert log entry
+        IF (PROC_ACTION = ''Started'') THEN
+            INSERT INTO IRN_STAGING.PROCESS_LOG (
+                SP_NAME, TABLE_NAME, STATUS, RAW_COUNT, STG_COUNT, 
+                PROCESS_FLOW, MESSAGE, START_TIME
+            ) VALUES (
+                :PROC_NAME, :TABLE_NAME, ''Started'', :RAW_COUNT, :STG_COUNT, 
+                :PROCESS_FLOW, :MESSAGE, CURRENT_TIMESTAMP()
+            );
+
+        ELSEIF (PROC_ACTION = ''Completed'') THEN
+            UPDATE IRN_STAGING.PROCESS_LOG
+            SET STATUS = ''Completed'',
+                RAW_COUNT = :RAW_COUNT,
+                STG_COUNT = :STG_COUNT,
+                PROCESS_FLOW = :PROCESS_FLOW,
+                MESSAGE = :MESSAGE,
+                END_TIME = CURRENT_TIMESTAMP()
+            WHERE SP_NAME = :PROC_NAME
+              AND TABLE_NAME = :TABLE_NAME
+              AND STATUS = ''Started''
+              AND PROCESS_FLOW = :PROCESS_FLOW
+              AND START_TIME = (
+                  SELECT MAX(START_TIME) 
+                  FROM IRN_STAGING.PROCESS_LOG 
+                  WHERE SP_NAME = :PROC_NAME 
+                    AND TABLE_NAME = :TABLE_NAME 
+                    AND STATUS = ''Started''
+                    AND PROCESS_FLOW = :PROCESS_FLOW
+              );
+        END IF;
+
+        RETURN ''Logged Successfully'';
+    EXCEPTION
+        WHEN OTHER THEN
+            
+            
+            ERR_MSG := SQLERRM;
+
+            INSERT INTO IRN_STAGING.PROCESS_LOG (
+                SP_NAME, TABLE_NAME, STATUS, RAW_COUNT, STG_COUNT, 
+                PROCESS_FLOW, MESSAGE, START_TIME
+            )
+            VALUES (
+                ''LOG_PROCEDURE_EXECUTION'', ''PROCESS_LOG'', ''Error'', NULL, NULL, 
+                ''Failure'',:ERR_MSG, CURRENT_TIMESTAMP()
+            );
+
+        
+
+        RETURN ''Error occurred1: '' || SQLSTATE || '' (Code: '' || SQLCODE || '', Msg: ''|| SQLERRM || '')'';
+    END;
+END;
+';
+CREATE OR REPLACE PROCEDURE "NOTES_FULL_LOAD"()
+RETURNS VARCHAR
+LANGUAGE JAVASCRIPT
+EXECUTE AS CALLER
+AS '
+try {
+    // Step 1: Log "Started" for Internal Stage → Raw
+    try {
+        let logStartSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''NOTES_FULL_LOAD'', ''NOTES'', ''Started'', 
+            NULL, NULL, ''Internal Stage → Raw'', ''Process started'' );`;
+        snowflake.execute({ sqlText: logStartSQL });
+    } catch (err) {
+        return "Logging failed: " + err.message;
+    }
+
+    // Step 2: Load new data into IRN_RAW.NOTES
+    try {
+        let loadRawDataSQL = `COPY INTO IRN_RAW.NOTES FROM (
+            SELECT PARSE_JSON($1) AS data, METADATA$FILENAME AS file_name, CURRENT_TIMESTAMP() AS event_time 
+            FROM @DEV_ANCHOR_DB.IRN_RAW.FACTSET_API_STG/NOTES
+        ) FILE_FORMAT = (TYPE = ''JSON'') PATTERN = ''.*.json'';`;
+        snowflake.execute({ sqlText: loadRawDataSQL });
+    } catch (err) {
+        let logErrorSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''NOTES_FULL_LOAD'', ''NOTES'', ''Error'', 
+            NULL, NULL, ''Internal Stage → Raw'', ''COPY INTO failed: '' || REPLACE(err.message, '''', '''''') || '' '' );`;
+        snowflake.execute({ sqlText: logErrorSQL });
+        return "Error in COPY INTO: " + err.message;
+    }
+
+    // Step 3: Get raw record count
+    let newDataCount = 0;
+    try {
+        let checkNewDataSQL = `SELECT COUNT(*) FROM IRN_RAW.NOTES_STREAM WHERE METADATA$ACTION = ''INSERT'';`;
+        let result = snowflake.execute({ sqlText: checkNewDataSQL });
+        newDataCount = result.next() ? result.getColumnValue(1) : 0;
+    } catch (err) {
+        return "Error counting new data: " + err.message;
+    }
+
+    // Step 4: Log Completion for Internal Stage → Raw
+    try {
+        let logRawCompleteSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''NOTES_FULL_LOAD'', ''NOTES'', ''Completed'', 
+            ` + newDataCount + `, NULL, ''Internal Stage → Raw'', 
+            ''` + (newDataCount > 0 ? "Data successfully loaded into RAW" : "No new data found in stream") + `'' );`;
+        snowflake.execute({ sqlText: logRawCompleteSQL });
+    } catch (err) {
+        return "Logging completion failed: " + err.message;
+    }
+
+    let stagingCount = 0;
+
+    if (newDataCount > 0) {
+        // Step 5: Log "Started" for Raw → Staging
+        try {
+            let logStagingStartSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+                ''NOTES_FULL_LOAD'', ''NOTES'', ''Started'', 
+                ` + newDataCount + `, NULL, ''Raw → Staging'', ''Moving data to staging'' );`;
+            snowflake.execute({ sqlText: logStagingStartSQL });
+        } catch (err) {
+            return "Logging staging start failed: " + err.message;
+        }
+
+        // Step 6: Delete existing records from staging
+        try {
+            snowflake.execute({ sqlText: `DELETE FROM IRN_STAGING.NOTES;` });
+        } catch (err) {
+            return "Error in DELETE FROM staging: " + err.message;
+        }
+
+        // Step 7: Move new data from raw → staging
+        try {
+            let insertIntoStagingSQL = `INSERT INTO IRN_STAGING.NOTES (
+                id, note_date, author_Id, title, identifier, contributor_Id, 
+                recommendation_Id, subject_Id, created_At, update_user
+            ) SELECT 
+                f.value:id::VARCHAR AS id,
+                f.value:date::DATE AS note_date,
+                f.value:authorId::VARCHAR AS author_Id,
+                f.value:title::VARCHAR AS title,
+                f.value:identifier::VARCHAR AS identifier,
+                f.value:contributorId::VARCHAR AS contributor_Id,
+                f.value:recommendationId::VARCHAR AS recommendation_Id,
+                f.value:subjectId::VARCHAR AS subject_Id,
+                f.value:createdAt::TIMESTAMP_NTZ AS created_At,
+                ''BATCH_LOAD'' AS update_user
+            FROM IRN_RAW.NOTES_STREAM NOTES, 
+            LATERAL FLATTEN(INPUT => NOTES.data) f;`;
+            snowflake.execute({ sqlText: insertIntoStagingSQL });
+        } catch (err) {
+            return "Error in INSERT INTO staging: " + err.message;
+        }
+
+        // Step 8: Get staging record count
+        try {
+            let stagingCountResult = snowflake.execute({ sqlText: `SELECT COUNT(*) FROM IRN_STAGING.NOTES;` });
+            stagingCount = stagingCountResult.next() ? stagingCountResult.getColumnValue(1) : 0;
+        } catch (err) {
+            return "Error in staging count: " + err.message;
+        }
+
+        // Step 9: Log Completion for Raw → Staging
+        try {
+            let logStagingCompleteSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+                ''NOTES_FULL_LOAD'', ''NOTES'', ''Completed'', 
+                ` + newDataCount + `, ` + stagingCount + `, ''Raw → Staging'', 
+                ''Data successfully moved to staging'' );`;
+            snowflake.execute({ sqlText: logStagingCompleteSQL });
+        } catch (err) {
+            return "Logging staging completion failed: " + err.message;
+        }
+    }
+
+    return (newDataCount > 0) ? "Data successfully moved to staging." : "No new data found.";
+} 
+catch (err) {
+    return "Unexpected error: " + err.message;
+}
+';
+CREATE OR REPLACE PROCEDURE "RECOMMENDATIONS_FULL_LOAD"()
+RETURNS VARCHAR
+LANGUAGE JAVASCRIPT
+EXECUTE AS CALLER
+AS '
+try {
+    // Step 1: Log "Started" for Internal Stage → Raw
+    try {
+        let logStartSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''RECOMMENDATIONS_FULL_LOAD'', ''RECOMMENDATIONS'', ''Started'', 
+            NULL, NULL, ''Internal Stage → Raw'', ''Process started'' );`;
+        snowflake.execute({ sqlText: logStartSQL });
+    } catch (err) {
+        return "Logging failed: " + err.message;
+    }
+
+    // Step 2: Load new data into IRN_RAW.RECOMMENDATIONS
+    try {
+        let loadRawDataSQL = `COPY INTO IRN_RAW.RECOMMENDATIONS FROM (
+            SELECT PARSE_JSON($1) AS data, METADATA$FILENAME AS file_name, CURRENT_TIMESTAMP() AS event_time 
+            FROM @DEV_ANCHOR_DB.IRN_RAW.FACTSET_API_STG/RECOMMENDATIONS
+        ) FILE_FORMAT = (TYPE = ''JSON'') PATTERN = ''.*.json'';`;
+        snowflake.execute({ sqlText: loadRawDataSQL });
+    } catch (err) {
+        let logErrorSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''RECOMMENDATIONS_FULL_LOAD'', ''RECOMMENDATIONS'', ''Error'', 
+            NULL, NULL, ''Internal Stage → Raw'', ''COPY INTO failed: '' || REPLACE(err.message, '''', '''''') || '' '' );`;
+        snowflake.execute({ sqlText: logErrorSQL });
+        return "Error in COPY INTO: " + err.message;
+    }
+
+    // Step 3: Get raw record count
+    let newDataCount = 0;
+    try {
+        let checkNewDataSQL = `SELECT COUNT(*) FROM IRN_RAW.RECOMMENDATIONS_STREAM WHERE METADATA$ACTION = ''INSERT'';`;
+        let result = snowflake.execute({ sqlText: checkNewDataSQL });
+        newDataCount = result.next() ? result.getColumnValue(1) : 0;
+    } catch (err) {
+        return "Error counting new data: " + err.message;
+    }
+
+    // Step 4: Log Completion for Internal Stage → Raw
+    try {
+        let logRawCompleteSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''RECOMMENDATIONS_FULL_LOAD'', ''RECOMMENDATIONS'', ''Completed'', 
+            ` + newDataCount + `, NULL, ''Internal Stage → Raw'', 
+            ''` + (newDataCount > 0 ? "Data successfully loaded into RAW" : "No new data found in stream") + `'' );`;
+        snowflake.execute({ sqlText: logRawCompleteSQL });
+    } catch (err) {
+        return "Logging completion failed: " + err.message;
+    }
+
+    let stagingCount = 0;
+
+    if (newDataCount > 0) {
+        // Step 5: Log "Started" for Raw → Staging
+        try {
+            let logStagingStartSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+                ''RECOMMENDATIONS_FULL_LOAD'', ''RECOMMENDATIONS'', ''Started'', 
+                ` + newDataCount + `, NULL, ''Raw → Staging'', ''Moving data to staging'' );`;
+            snowflake.execute({ sqlText: logStagingStartSQL });
+        } catch (err) {
+            return "Logging staging start failed: " + err.message;
+        }
+
+        // Step 6: Delete existing records from staging
+        try {
+            snowflake.execute({ sqlText: `DELETE FROM IRN_STAGING.RECOMMENDATIONS;` });
+        } catch (err) {
+            return "Error in DELETE FROM staging: " + err.message;
+        }
+
+        // Step 7: Move new data from raw → staging
+        try {
+            let insertIntoStagingSQL = `INSERT INTO IRN_STAGING.RECOMMENDATIONS (
+                id, name, code, update_user
+            ) SELECT 
+                f.value:id::VARCHAR AS id,
+                f.value:name::VARCHAR AS name,
+                f.value:code::INT AS code,
+                ''BATCH_LOAD'' AS update_user
+            FROM IRN_RAW.RECOMMENDATIONS_STREAM RECOMMENDATIONS, 
+            LATERAL FLATTEN(INPUT => RECOMMENDATIONS.data) f;`;
+            snowflake.execute({ sqlText: insertIntoStagingSQL });
+        } catch (err) {
+            return "Error in INSERT INTO staging: " + err.message;
+        }
+
+        // Step 8: Get staging record count
+        try {
+            let stagingCountResult = snowflake.execute({ sqlText: `SELECT COUNT(*) FROM IRN_STAGING.RECOMMENDATIONS;` });
+            stagingCount = stagingCountResult.next() ? stagingCountResult.getColumnValue(1) : 0;
+        } catch (err) {
+            return "Error in staging count: " + err.message;
+        }
+
+        // Step 9: Log Completion for Raw → Staging
+        try {
+            let logStagingCompleteSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+                ''RECOMMENDATIONS_FULL_LOAD'', ''RECOMMENDATIONS'', ''Completed'', 
+                ` + newDataCount + `, ` + stagingCount + `, ''Raw → Staging'', 
+                ''Data successfully moved to staging'' );`;
+            snowflake.execute({ sqlText: logStagingCompleteSQL });
+        } catch (err) {
+            return "Logging staging completion failed: " + err.message;
+        }
+    }
+
+    return (newDataCount > 0) ? "Data successfully moved to staging." : "No new data found.";
+} 
+catch (err) {
+    return "Unexpected error: " + err.message;
+}
+';
+CREATE OR REPLACE PROCEDURE "SUBJECTS_FULL_LOAD"()
+RETURNS VARCHAR
+LANGUAGE JAVASCRIPT
+EXECUTE AS CALLER
+AS '
+try {
+    // Step 1: Log "Started" for Internal Stage → Raw
+    try {
+        let logStartSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''SUBJECTS_FULL_LOAD'', ''SUBJECTS'', ''Started'', 
+            NULL, NULL, ''Internal Stage → Raw'', ''Process started'' );`;
+        snowflake.execute({ sqlText: logStartSQL });
+    } catch (err) {
+        return "Logging failed: " + err.message;
+    }
+
+    // Step 2: Load new data into IRN_RAW.SUBJECTS
+    try {
+        let loadRawDataSQL = `COPY INTO IRN_RAW.SUBJECTS FROM (
+            SELECT PARSE_JSON($1) AS data, METADATA$FILENAME AS file_name, CURRENT_TIMESTAMP() AS event_time 
+            FROM @DEV_ANCHOR_DB.IRN_RAW.FACTSET_API_STG/SUBJECTS
+        ) FILE_FORMAT = (TYPE = ''JSON'') PATTERN = ''.*.json'';`;
+        snowflake.execute({ sqlText: loadRawDataSQL });
+    } catch (err) {
+        let logErrorSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''SUBJECTS_FULL_LOAD'', ''SUBJECTS'', ''Error'', 
+            NULL, NULL, ''Internal Stage → Raw'', ''COPY INTO failed: ${err.message.replace(/''/g, "''''")}'' );`;
+        snowflake.execute({ sqlText: logErrorSQL });
+        return "Error in COPY INTO: " + err.message;
+    }
+
+    // Step 3: Get raw record count
+    let newDataCount = 0;
+    try {
+        let checkNewDataSQL = `SELECT COUNT(*) FROM IRN_RAW.SUBJECTS_STREAM WHERE METADATA$ACTION = ''INSERT'';`;
+        let result = snowflake.execute({ sqlText: checkNewDataSQL });
+        if (result.next()) {
+            newDataCount = result.getColumnValue(1);
+        }
+    } catch (err) {
+        return "Error counting new data: " + err.message;
+    }
+
+    // Step 4: Log Completion for Internal Stage → Raw
+    try {
+        let logRawCompleteSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''SUBJECTS_FULL_LOAD'', ''SUBJECTS'', ''Completed'', 
+            ${newDataCount}, NULL, ''Internal Stage → Raw'', 
+            ''${newDataCount > 0 ? "Data successfully loaded into RAW" : "No new data found in stream"}'' );`;
+        snowflake.execute({ sqlText: logRawCompleteSQL });
+    } catch (err) {
+        return "Logging completion failed: " + err.message;
+    }
+
+    let stagingCount = 0;
+
+    if (newDataCount > 0) {
+        // Step 5: Log "Started" for Raw → Staging
+        try {
+            let logStagingStartSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+                ''SUBJECTS_FULL_LOAD'', ''SUBJECTS'', ''Started'', 
+                ${newDataCount}, NULL, ''Raw → Staging'', ''Moving data to staging'' );`;
+            snowflake.execute({ sqlText: logStagingStartSQL });
+        } catch (err) {
+            return "Logging staging start failed: " + err.message;
+        }
+
+        // Step 6: Delete existing records from staging
+        try {
+            snowflake.execute({ sqlText: `DELETE FROM IRN_STAGING.SUBJECTS;` });
+        } catch (err) {
+            return "Error in DELETE FROM staging: " + err.message;
+        }
+
+        // Step 7: Move new data from raw → staging
+        try {
+            let insertIntoStagingSQL = `INSERT INTO IRN_STAGING.SUBJECTS (
+                id, code, name, update_user
+            ) SELECT 
+                f.value:id::VARCHAR AS id,
+                f.value:code::VARCHAR AS code,
+                f.value:name::VARCHAR AS name,
+                ''BATCH_LOAD'' AS update_user
+            FROM IRN_RAW.SUBJECTS_STREAM SUBJECT, 
+            LATERAL FLATTEN(INPUT => SUBJECT.data) f;`;
+            snowflake.execute({ sqlText: insertIntoStagingSQL });
+        } catch (err) {
+            return "Error in INSERT INTO staging: " + err.message;
+        }
+
+        // Step 8: Get staging record count
+        try {
+            let stagingCountResult = snowflake.execute({ sqlText: `SELECT COUNT(*) FROM IRN_STAGING.SUBJECTS;` });
+            if (stagingCountResult.next()) {
+                stagingCount = stagingCountResult.getColumnValue(1);
+            }
+        } catch (err) {
+            return "Error in staging count: " + err.message;
+        }
+
+        // Step 9: Log Completion for Raw → Staging
+        try {
+            let logStagingCompleteSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+                ''SUBJECTS_FULL_LOAD'', ''SUBJECTS'', ''Completed'', 
+                ${newDataCount}, ${stagingCount}, ''Raw → Staging'', 
+                ''Data successfully moved to staging'' );`;
+            snowflake.execute({ sqlText: logStagingCompleteSQL });
+        } catch (err) {
+            return "Logging staging completion failed: " + err.message;
+        }
+    }
+
+    return (newDataCount > 0) ? "Data successfully moved to staging." : "No new data found.";
+} 
+catch (err) {
+    return "Unexpected error: " + err.message;
+}
+';
+CREATE OR REPLACE PROCEDURE "USERS_FULL_LOAD"()
+RETURNS VARCHAR
+LANGUAGE JAVASCRIPT
+EXECUTE AS CALLER
+AS '
+try {
+    // Step 1: Log "Started" for Internal Stage → Raw
+    try {
+        let logStartSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''USERS_FULL_LOAD'', ''USERS'', ''Started'', 
+            NULL, NULL, ''Internal Stage → Raw'', ''Process started'' );`;
+        snowflake.execute({ sqlText: logStartSQL });
+    } catch (err) {
+        return "Logging failed: " + err.message;
+    }
+
+    // Step 2: Load new data into IRN_RAW.USERS
+    try {
+        let loadRawDataSQL = `COPY INTO IRN_RAW.USERS FROM (
+            SELECT PARSE_JSON($1) AS data, METADATA$FILENAME AS file_name, CURRENT_TIMESTAMP() AS event_time 
+            FROM @DEV_ANCHOR_DB.IRN_RAW.FACTSET_API_STG/USERS
+        ) FILE_FORMAT = (TYPE = ''JSON'') PATTERN = ''.*.json'';`;
+        snowflake.execute({ sqlText: loadRawDataSQL });
+    } catch (err) {
+        let logErrorSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''USERS_FULL_LOAD'', ''USERS'', ''Error'', 
+            NULL, NULL, ''Internal Stage → Raw'', ''COPY INTO failed: '' || REPLACE(err.message, '''', '''''') || '' '' );`;
+        snowflake.execute({ sqlText: logErrorSQL });
+        return "Error in COPY INTO: " + err.message;
+    }
+
+    // Step 3: Get raw record count
+    let newDataCount = 0;
+    try {
+        let checkNewDataSQL = `SELECT COUNT(*) FROM IRN_RAW.USERS_STREAM WHERE METADATA$ACTION = ''INSERT'';`;
+        let result = snowflake.execute({ sqlText: checkNewDataSQL });
+        newDataCount = result.next() ? result.getColumnValue(1) : 0;
+    } catch (err) {
+        return "Error counting new data: " + err.message;
+    }
+
+    // Step 4: Log Completion for Internal Stage → Raw
+    try {
+        let logRawCompleteSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+            ''USERS_FULL_LOAD'', ''USERS'', ''Completed'', 
+            ` + newDataCount + `, NULL, ''Internal Stage → Raw'', 
+            ''` + (newDataCount > 0 ? "Data successfully loaded into RAW" : "No new data found in stream") + `'' );`;
+        snowflake.execute({ sqlText: logRawCompleteSQL });
+    } catch (err) {
+        return "Logging completion failed: " + err.message;
+    }
+
+    let stagingCount = 0;
+
+    if (newDataCount > 0) {
+        // Step 5: Log "Started" for Raw → Staging
+        try {
+            let logStagingStartSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+                ''USERS_FULL_LOAD'', ''USERS'', ''Started'', 
+                ` + newDataCount + `, NULL, ''Raw → Staging'', ''Moving data to staging'' );`;
+            snowflake.execute({ sqlText: logStagingStartSQL });
+        } catch (err) {
+            return "Logging staging start failed: " + err.message;
+        }
+
+        // Step 6: Delete existing records from staging
+        try {
+            snowflake.execute({ sqlText: `DELETE FROM IRN_STAGING.USERS;` });
+        } catch (err) {
+            return "Error in DELETE FROM staging: " + err.message;
+        }
+
+        // Step 7: Move new data from raw → staging
+        try {
+            let insertIntoStagingSQL = `INSERT INTO IRN_STAGING.USERS (
+                id, serial_Number, first_Name, last_Name, email_Address, update_user
+            ) SELECT 
+                f.value:id::VARCHAR AS id,
+                f.value:serialNumber::VARCHAR AS serial_Number,
+                f.value:firstName::VARCHAR AS first_Name,
+                f.value:lastName::VARCHAR AS last_Name,
+                f.value:emailAddress::VARCHAR AS email_Address,
+                ''BATCH_LOAD'' AS update_user
+            FROM IRN_RAW.USERS_STREAM USERS, 
+            LATERAL FLATTEN(INPUT => USERS.data) f;`;
+            snowflake.execute({ sqlText: insertIntoStagingSQL });
+        } catch (err) {
+            return "Error in INSERT INTO staging: " + err.message;
+        }
+
+        // Step 8: Get staging record count
+        try {
+            let stagingCountResult = snowflake.execute({ sqlText: `SELECT COUNT(*) FROM IRN_STAGING.USERS;` });
+            stagingCount = stagingCountResult.next() ? stagingCountResult.getColumnValue(1) : 0;
+        } catch (err) {
+            return "Error in staging count: " + err.message;
+        }
+
+        // Step 9: Log Completion for Raw → Staging
+        try {
+            let logStagingCompleteSQL = `CALL IRN_STAGING.LOG_PROCEDURE_EXECUTION(
+                ''USERS_FULL_LOAD'', ''USERS'', ''Completed'', 
+                ` + newDataCount + `, ` + stagingCount + `, ''Raw → Staging'', 
+                ''Data successfully moved to staging'' );`;
+            snowflake.execute({ sqlText: logStagingCompleteSQL });
+        } catch (err) {
+            return "Logging staging completion failed: " + err.message;
+        }
+    }
+
+    return (newDataCount > 0) ? "Data successfully moved to staging." : "No new data found.";
+} 
+catch (err) {
+    return "Unexpected error: " + err.message;
+}
+';
+create or replace task IDENTIFIERS_FULL_LOAD_TASK
+	warehouse=DEV_BI_WH_XS
+	schedule='USING CRON 1 0 * * * UTC'
+	as BEGIN
+    -- Check if the stream has data
+    IF (SYSTEM$STREAM_HAS_DATA('DEV_ANCHOR_DB.IRN_RAW.IDENTIFIERS_STREAM')) THEN
+        -- Run the stored procedure
+        CALL DEV_ANCHOR_DB.IRN_STAGING.IDENTIFIERS_FULL_LOAD_V2();
+    END IF;
+END;
+create or replace masking policy MASK_NOTEID_STAGING as (NOTEID VARCHAR) 
+returns VARCHAR ->
+CASE
+    WHEN CURRENT_ROLE() = 'DEV_ANALYST' 
+    THEN 'XXXX' || RIGHT(NOTEID, 4) -- Mask all except last 4 characters
+    ELSE NOTEID -- Show full ISIN for other roles
+END
+;
+create or replace schema PUBLIC;
+
+create or replace schema SCHEMACHANGE;
+
+create or replace TABLE CHANGE_HISTORY (
+	VERSION VARCHAR(16777216),
+	DESCRIPTION VARCHAR(16777216),
+	SCRIPT VARCHAR(16777216),
+	SCRIPT_TYPE VARCHAR(16777216),
+	CHECKSUM VARCHAR(16777216),
+	EXECUTION_TIME NUMBER(38,0),
+	STATUS VARCHAR(16777216),
+	INSTALLED_BY VARCHAR(16777216),
+	INSTALLED_ON TIMESTAMP_LTZ(9)
+);

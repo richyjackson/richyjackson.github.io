@@ -1,0 +1,185 @@
+create or replace database FIRDS;
+
+create or replace schema STAGING;
+
+create or replace TABLE DOWNLOAD_LOCATION (
+	LOCATION VARCHAR(100)
+);
+CREATE OR REPLACE FUNCTION "F_GET_FILE_COUNT_FOR_DATE"("FILE_TYPE" VARCHAR, "FILE_DATE" VARCHAR)
+RETURNS VARCHAR
+LANGUAGE PYTHON
+RUNTIME_VERSION = '3.8'
+PACKAGES = ('requests','snowflake-snowpark-python')
+HANDLER = 'fird_api_data'
+EXTERNAL_ACCESS_INTEGRATIONS = (FIRD_ACCESS_INTEGRATION)
+AS '
+
+import requests
+session = requests.Session()
+import json
+
+def fird_api_data(FILE_TYPE, FILE_DATE):
+
+    var_file_type = FILE_TYPE
+    var_file_date = FILE_DATE
+    
+    baseurl = "https://api.data.fca.org.uk/fca_data_firds_files"
+
+    urlAPI = f"{baseurl}?q=((file_type:{var_file_type})%20AND%20(publication_date:[{var_file_date}%20TO%20{var_file_date}]))&from=0&size=100&pretty=true"
+    response = requests.get(urlAPI)
+    data = response.json()
+        
+    file_count = data["hits"][''total'']
+
+    return file_count
+    
+';
+CREATE OR REPLACE FUNCTION "F_GET_FILE_URL_FROM_POSITION"("FILE_TYPE" VARCHAR, "FILE_DATE" VARCHAR, "POSITION" NUMBER(38,0))
+RETURNS VARCHAR
+LANGUAGE PYTHON
+RUNTIME_VERSION = '3.8'
+PACKAGES = ('requests','snowflake-snowpark-python')
+HANDLER = 'get_data'
+EXTERNAL_ACCESS_INTEGRATIONS = (FIRD_ACCESS_INTEGRATION)
+AS '
+
+import requests
+session = requests.Session()
+
+def get_data(FILE_TYPE, FILE_DATE, POSITION):
+
+    var_file_type = FILE_TYPE
+    var_file_date = FILE_DATE
+    var_position = POSITION
+    
+    baseurl = "https://api.data.fca.org.uk/fca_data_firds_files"
+
+    urlAPI = f"{baseurl}?q=((file_type:{var_file_type})%20AND%20(publication_date:[{var_file_date}%20TO%20{var_file_date}]))&from=0&size=100&pretty=true"
+    response = requests.get(urlAPI)
+    data = response.json()
+        
+    lst = []
+    for i in data["hits"]["hits"]:
+        lst.append(i["_source"]["download_link"])
+
+    download_link = lst[var_position]
+
+    return download_link
+    
+';
+CREATE OR REPLACE PROCEDURE "IMPORT_ZIP_TO_STAGING"()
+RETURNS VARCHAR
+LANGUAGE PYTHON
+RUNTIME_VERSION = '3.8'
+PACKAGES = ('requests','snowflake-snowpark-python')
+HANDLER = 'FIRDApiData2'
+EXTERNAL_ACCESS_INTEGRATIONS = (FIRD_ACCESS_INTEGRATION)
+EXECUTE AS CALLER
+AS '
+
+import requests
+session = requests.Session()
+
+def FIRDApiData2():
+
+    #url = "https://api.data.fca.org.uk/fca_data_firds_files"
+    url = "https://data.fca.org.uk/artefacts/FIRDS/DLTINS_20250305_01of01.zip"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return ''Success'' # response.content
+    else:
+        raise Exception("Failed")
+
+';
+CREATE OR REPLACE PROCEDURE "P_GET_FILE_COUNT_FOR_DATE"("FILE_TYPE" VARCHAR, "FILE_DATE" VARCHAR)
+RETURNS VARCHAR
+LANGUAGE PYTHON
+RUNTIME_VERSION = '3.8'
+PACKAGES = ('requests','snowflake-snowpark-python')
+HANDLER = 'main'
+EXTERNAL_ACCESS_INTEGRATIONS = (FIRD_ACCESS_INTEGRATION)
+EXECUTE AS OWNER
+AS '
+
+import requests
+session = requests.Session()
+import json
+
+def main(FILE_TYPE, FILE_DATE):
+
+    var_file_type = FILE_TYPE
+    var_file_date = FILE_DATE
+    
+    baseurl = "https://api.data.fca.org.uk/fca_data_firds_files"
+
+    urlAPI = f"{baseurl}?q=((file_type:{var_file_type})%20AND%20(publication_date:[{var_file_date}%20TO%20{var_file_date}]))&from=0&size=100&pretty=true"
+    response = requests.get(urlAPI)
+    data = response.json()
+        
+    file_count = data["hits"][''total'']
+
+    return file_count
+    
+';
+CREATE OR REPLACE PROCEDURE "P_GET_FILE_URL_FROM_POSITION"("FILE_TYPE" VARCHAR, "FILE_DATE" VARCHAR, "POSITION" NUMBER(38,0))
+RETURNS VARCHAR
+LANGUAGE PYTHON
+RUNTIME_VERSION = '3.9'
+PACKAGES = ('requests','snowflake-snowpark-python','pandas','simplejson')
+HANDLER = 'main'
+EXTERNAL_ACCESS_INTEGRATIONS = (FIRD_ACCESS_INTEGRATION)
+EXECUTE AS OWNER
+AS '
+import requests
+session = requests.Session()
+import snowflake.connector
+import pandas as pd
+import simplejson as json
+
+# https://closebrothersam.atlassian.net/wiki/spaces/DSA/pages/453247005/FIRD+-+Financial+Instruments+Reference+Data
+
+def main(FILE_TYPE, FILE_DATE, POSITION):
+
+    var_file_type = FILE_TYPE
+    var_file_date = FILE_DATE
+    var_position = POSITION
+    
+    baseurl = "https://api.data.fca.org.uk/fca_data_firds_files"
+
+    urlAPI = f"{baseurl}?q=((file_type:{var_file_type})%20AND%20(publication_date:[{var_file_date}%20TO%20{var_file_date}]))&from=0&size=100&pretty=true"
+    response = requests.get(urlAPI)
+    data = response.json()
+    
+    df = pd.DataFrame(data)
+     
+    lst = []
+    for i in data["hits"]["hits"]:
+        lst.append(i["_source"]["download_link"])
+
+    my_val = lst[var_position]
+
+    my_val = json.dumps(my_val, indent=4)
+
+    my_val = my_val.replace(''"'', "")
+
+    return my_val
+    
+';
+CREATE OR REPLACE PROCEDURE "W_ADD_DOWNLOAD_LOCATION_TO_TABLE"("FILE_TYPE" VARCHAR)
+RETURNS VARCHAR
+LANGUAGE SQL
+COMMENT='user-defined procedure'
+EXECUTE AS CALLER
+AS '
+
+BEGIN
+
+    INSERT INTO DOWNLOAD_LOCATION (LOCATION)
+
+        SELECT W_GET_FILE_LOCATION_FROM_POSITION(:FILE_TYPE, ''2025-02-02'', 1);
+
+        RETURN ''Complete'';
+
+END;
+
+';

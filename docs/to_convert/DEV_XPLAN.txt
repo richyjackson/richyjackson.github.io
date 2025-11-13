@@ -1,0 +1,437 @@
+create or replace database DEV_XPLAN;
+
+create or replace schema ANALYSIS;
+
+create or replace dynamic table DIM_USER_GROUP(
+	USER_GROUP_ID,
+	PROFILE_USER_ID,
+	GROUP_ENTITY_ID,
+	GROUP_NAME,
+	GROUP_HIERARCHY_LEVEL
+) target_lag = '1 minute' refresh_mode = INCREMENTAL initialize = ON_CREATE warehouse = DEV_BI_WH_XS
+ as
+
+	SELECT
+		COALESCE(CAST(x."EntityId" AS VARCHAR(100)), '-', CAST(x."GroupEntityId" AS VARCHAR(20))) USER_GROUP_ID, 
+		x."EntityId" PROFILE_USER_ID, 
+		x."GroupEntityId" GROUP_ENTITY_ID, 
+		x."Group Name" GROUP_NAME,
+		g.grouphier_level GROUP_HIERARCHY_LEVEL
+	FROM
+		DEV_XPLAN.RAW.XPORT_USER_GROUPS x
+		JOIN DEV_XPLAN.RAW.ODS_GROUPS g ON g.groupid = x."GroupEntityId"
+	WHERE
+		x."Group Name" <> 'N/A';
+create or replace schema ANALYSIS_HISTORY;
+
+create or replace schema CONFIG;
+
+create or replace sequence LOG_XPORT_ID start with 1 increment by 1 noorder;
+create or replace TABLE XPORT_CONFIG (
+	ID NUMBER(38,0) NOT NULL autoincrement start 1 increment 1 noorder,
+	REMOTE_FILE_NAME VARCHAR(100),
+	DESTINATION_TABLE VARCHAR(100)
+);
+create or replace TABLE XPORT_LOG (
+	ID NUMBER(38,0) NOT NULL,
+	EXECUTION_TIME TIMESTAMP_NTZ(9) DEFAULT DATE_ADDHOURSTOTIMESTAMP(8, CURRENT_TIMESTAMP()),
+	ACTION VARCHAR(100),
+	FILE_ROW_COUNT NUMBER(38,0),
+	FILE_MODIFIED_TIME VARCHAR(100),
+	FILE_SIZE NUMBER(38,0),
+	STATUS VARCHAR(10),
+	MESSAGE VARCHAR(200),
+	primary key (ID)
+);
+CREATE OR REPLACE FUNCTION "CONVERT_DATE_FORMAT"("INPUT_DATE" VARCHAR)
+RETURNS VARCHAR
+LANGUAGE SQL
+AS '
+
+    CONCAT(
+        SUBSTR(INPUT_DATE, 7, 4), ''-'', -- Extract the year
+        SUBSTR(INPUT_DATE, 4, 2), ''-'', -- Extract the month
+        SUBSTR(INPUT_DATE, 1, 2) -- Extract the day
+    )
+';
+create or replace schema RAW;
+
+create or replace TABLE ODS_GROUPS (
+	GROUPID NUMBER(38,0),
+	XPT_ADVISER_STATUS VARCHAR(16777216),
+	GROUP_NAME VARCHAR(16777216),
+	XPT_ACTIVE_DATE VARCHAR(16777216),
+	XPT_TERMINATION_DATE VARCHAR(16777216),
+	GROUPHIER_PARENT NUMBER(38,0),
+	GROUPHIER_LEVEL VARCHAR(16777216)
+);
+create or replace TABLE XPORT_ASSET_CONTRIBUTION (
+	"Amount" VARCHAR(16777216),
+	"Frequency" VARCHAR(16777216),
+	"StartDate" VARCHAR(16777216),
+	"AssetListItemIndex" VARCHAR(16777216),
+	"SourceofFunds" VARCHAR(16777216),
+	"FundSourceDetail" VARCHAR(16777216),
+	"EndDate" VARCHAR(16777216),
+	"ContListItemIndex" VARCHAR(16777216)
+);
+create or replace TABLE XPORT_ASSET_WITHDRAWAL (
+	"ListItemIndex" VARCHAR(16777216),
+	"AssetWithdrawalListItemIndex" VARCHAR(16777216),
+	"Amount" VARCHAR(16777216),
+	"Frequency" VARCHAR(16777216),
+	"%ofWithdrawal" VARCHAR(16777216),
+	"StartDate" VARCHAR(16777216),
+	"EndDate" VARCHAR(16777216),
+	"Reason" VARCHAR(16777216)
+);
+create or replace TABLE XPORT_MEDICAL_INSURANCE (
+	"insurer" VARCHAR(16777216),
+	"index" VARCHAR(16777216)
+);
+create or replace TABLE XPORT_PENSION_CONTRIBUTION (
+	"StartDate" VARCHAR(16777216),
+	"GrossAmount" VARCHAR(16777216),
+	"Frequency" VARCHAR(16777216),
+	"SourceofFunds" VARCHAR(16777216),
+	"FundSourceDetail" VARCHAR(16777216),
+	"ContributionType" VARCHAR(16777216),
+	"EndDate" VARCHAR(16777216),
+	"PensionListItemIndex" VARCHAR(16777216),
+	"ContListItemIndex" VARCHAR(16777216)
+);
+create or replace TABLE XPORT_USER (
+	"EntityId" VARCHAR(16777216),
+	"ExternalIdentifier" VARCHAR(16777216),
+	"EntityName" VARCHAR(16777216),
+	"RAGStatus" VARCHAR(16777216),
+	"RAGStatusComment" VARCHAR(16777216),
+	"last_login_date" VARCHAR(16777216),
+	"Remote" VARCHAR(16777216)
+);
+create or replace TABLE XPORT_USER_GROUPS (
+	"EntityId" VARCHAR(16777216),
+	"ExternalIdentifier" VARCHAR(16777216),
+	"CreatedDate" VARCHAR(16777216),
+	"Forename" VARCHAR(16777216),
+	"Surname" VARCHAR(16777216),
+	"UserId" VARCHAR(16777216),
+	"AccessLevel" VARCHAR(16777216),
+	"EntityName" VARCHAR(16777216),
+	"Group Name" VARCHAR(16777216),
+	"GroupEntityId" VARCHAR(16777216),
+	"PrimaryUserGroup" VARCHAR(16777216),
+	"HierarchyLevel" VARCHAR(16777216),
+	"HierarchyParentGroup" VARCHAR(16777216)
+);
+create or replace TABLE XPORT_XPLAN_REFERRER (
+	"Entity Id" VARCHAR(16777216),
+	"SLX Reference" VARCHAR(16777216),
+	"Primary Relationship Master" VARCHAR(16777216),
+	"Referrer Name" VARCHAR(16777216),
+	"Referrer Company" NUMBER(38,0),
+	"Category" VARCHAR(16777216)
+);
+CREATE OR REPLACE PROCEDURE "RUN_ALL"()
+RETURNS VARCHAR
+LANGUAGE SQL
+EXECUTE AS OWNER
+AS '
+BEGIN    
+    CALL DEV_XPLAN.RAW.TRANSFER_SFTP_TO_TABLE(''Xplan_Refferer.csv'', ''XPORT_REFERRER''); -- Succeeds
+    
+    CALL DEV_XPLAN.RAW.TRANSFER_SFTP_TO_TABLE(''Xplan_General_Insurance.csv'', ''XPORT_GENERAL_INSURANCE''); -- Succeeds
+    
+    CALL DEV_XPLAN.RAW.TRANSFER_SFTP_TO_TABLE(''Xplan_Medical_Insurance.csv'', ''XPORT_MEDICAL_INSURANCE''); -- Succeeds
+    
+    CALL DEV_XPLAN.RAW.TRANSFER_SFTP_TO_TABLE(''Users_Groups.csv'', ''XPORT_USERS_GROUPS''); -- Succeeds
+    
+    CALL DEV_XPLAN.RAW.TRANSFER_SFTP_TO_TABLE(''Xplan_Asset_Contribution.csv'', ''XPORT_ASSET_CONTRIBUTION''); -- Succeeds
+    
+    CALL DEV_XPLAN.RAW.TRANSFER_SFTP_TO_TABLE(''Xplan_Pension_Contribution.csv'', ''XPORT_PENSION_CONTRIBUTION''); -- Succeeds
+    
+    CALL DEV_XPLAN.RAW.TRANSFER_SFTP_TO_TABLE(''Xplan_User.csv'', ''XPORT_USER''); -- Success
+    
+    CALL DEV_XPLAN.RAW.TRANSFER_SFTP_TO_TABLE(''Xplan_CBAM_File_Review_MI.csv'', ''XPORT_CBAM_FILE_REVIEW_MI''); -- Success
+END
+
+';
+CREATE OR REPLACE PROCEDURE "TRANSFER_SFTP_TO_STAGE"()
+RETURNS VARCHAR
+LANGUAGE PYTHON
+RUNTIME_VERSION = '3.8'
+PACKAGES = ('paramiko','snowflake-snowpark-python')
+HANDLER = 'test_sftp'
+EXTERNAL_ACCESS_INTEGRATIONS = (SFTP_IRESS_CO_UK_EXT_INT)
+SECRETS = ('cred'=SFTP_IRESS_CO_UK_CRED)
+EXECUTE AS OWNER
+AS '
+import _snowflake
+import paramiko
+import os 
+import tempfile
+import snowflake.snowpark as snowpark
+
+def test_sftp(session: snowpark.Session):
+    sftp_host = "sftp.iress.co.uk"
+    sftp_port = 22
+    sftp_cred = _snowflake.get_username_password("cred")
+    sftp_username = sftp_cred.username
+    sftp_password = sftp_cred.password
+
+    try:
+        # Initialize SSH Client
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        # Connect to SFTP Server
+        ssh.connect(sftp_host, port=sftp_port, username=sftp_username, password=sftp_password)
+        
+        # Open SFTP session
+        sftp = ssh.open_sftp()
+
+        remote_file_path = "/XPORTS/UserGroups.csv"
+        
+        # Check if file exists
+        try:
+            sftp.stat(remote_file_path)
+        except FileNotFoundError:
+            return "File does not exist"
+
+        # Get the file
+
+        #stage_name = "@XPORT"
+        #local_file_path = "/tmp/UserGroups.csv"
+        temp_file_path = tempfile.NamedTemporaryFile(delete=False).name
+        
+        stagepath = "DEV_XPLAN.RAW.XPORT"
+        local_file_path = "/"
+        local_file_path = local_file_path.rstrip("/")
+        if not local_file_path.startswith("/"):
+            local_file_path = f"/{local_file_path}"
+
+        original_file_name = os.path.basename(remote_file_path)
+        temp_file_download_path = os.path.join(tempfile.gettempdir(),original_file_name)
+        
+        sftp.get(remote_file_path,temp_file_download_path)
+        #with tempfile.TemporaryDirectory() as temp_extract_dir:
+        #    for file_name in os.listdir(temp_extract_dir):
+        #        file_path = os.path.join(temp_extract_dir, file_name)
+        #        upload_path = f"@{stage_location}{localfile_file_path}/{file_name}"
+        #        file.put(f"file://{file_path})",upload_path, auto_compressoin)
+        upload_path = f"@{stagepath}{local_file_path}"
+        session.file.put(f"file://{temp_file_download_path}",upload_path, auto_compress=False, overwrite=True )
+        
+        #sftp.get(remote_file_path, local_file_path @stage_name)
+
+        # Close connections
+        sftp.close()
+        ssh.close()
+        
+        return "File Copied!"
+    
+    except Exception as e:
+        return f"SFTP connection failed: {e}"
+';
+CREATE OR REPLACE PROCEDURE "TRANSFER_SFTP_TO_TABLE"("remote_file_name" VARCHAR, "destination_table" VARCHAR)
+RETURNS VARCHAR
+LANGUAGE PYTHON
+RUNTIME_VERSION = '3.8'
+PACKAGES = ('paramiko','snowflake-snowpark-python')
+HANDLER = 'main'
+EXTERNAL_ACCESS_INTEGRATIONS = (SFTP_IRESS_CO_UK_EXT_INT)
+SECRETS = ('cred'=SFTP_IRESS_CO_UK_CRED)
+COMMENT='Transfers data from Xplan Xports from SFTP to Snowflake'
+EXECUTE AS OWNER
+AS '
+
+import snowflake.snowpark as snowpark
+import _snowflake
+import paramiko
+import pandas as pd
+import csv
+import io
+from datetime import datetime, timedelta
+
+def main(session: snowpark.Session, remote_file_name, destination_table):
+    # SFTP Connection Details
+    sftp_host = "sftp.iress.co.uk"
+    sftp_port = 22
+    sftp_cred = _snowflake.get_username_password("cred")
+    sftp_username = sftp_cred.username
+    sftp_password = sftp_cred.password
+
+    remote_file_path = "/XPORTS/" + remote_file_name
+
+    action = remote_file_path + '' to DEV_XPLAN.RAW.'' + destination_table
+    
+    try:
+    
+        # Step 1: Connect to SFTP
+        
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect(sftp_host, port=sftp_port, username=sftp_username, password=sftp_password)
+
+        sftp = ssh.open_sftp()
+        with sftp.open(remote_file_path, ''r'') as file:
+#            csv_content = file.read().decode(''utf-8'')
+            csv_content = file.read().decode(''iso-8859-1'')
+        file_stat = sftp.stat(remote_file_path)
+            
+        sftp.close()
+        ssh.close()
+
+        # Step 2: Load CSV into Pandas DataFrame
+        
+        df = pd.read_csv(io.StringIO(csv_content), delimiter=''|'', dtype=str)
+
+        row_count = str(len(df))
+
+        # Transfer data to a snowflake table
+
+        session.write_pandas(
+            df = df,
+            table_name = destination_table,
+            auto_create_table=True,
+            overwrite=True
+        )
+
+        # Populate the logging table
+
+        file_modified_time = datetime.fromtimestamp(file_stat.st_mtime)
+        file_modified_time = file_modified_time + timedelta(hours=8)
+        
+        file_size = file_stat.st_size
+        
+        
+        sql = "INSERT INTO DEV_XPLAN.CONFIG.XPORT_LOG (ID, ACTION, FILE_ROW_COUNT, FILE_MODIFIED_TIME, FILE_SIZE, STATUS, MESSAGE) VALUES (DEV_XPLAN.CONFIG.LOG_XPORT_ID.NEXTVAL, ''" + action + "'', ''" + row_count + "'', ''" + str(file_modified_time) + "'', ''" + str(file_size) + "'', ''Success'', ''File Transferred'')"
+
+        session.sql(sql).collect()
+
+        return "Success"
+
+    except Exception as e:
+
+        # Catch the error and place in the logging table
+
+        err_msg = f"Error: {str(e)}"
+
+        sql = "INSERT INTO DEV_XPLAN.CONFIG.XPORT_LOG (ID, ACTION, STATUS, MESSAGE) VALUES (DEV_XPLAN.CONFIG.LOG_XPORT_ID.NEXTVAL, ''" + action + "'', ''Failed'', ''" + err_msg + "'')"
+
+        session.sql(sql).collect()
+        
+        return "Fail"
+
+';
+create or replace task IRESS_SFTP_IMPORT_USER_GROUPS
+	warehouse=DEV_BI_WH_XS
+	schedule='USING CRON 0 4 * * * UTC'
+	as CALL DEV_XPLAN.RAW.TRANSFER_SFTP_TO_TABLE('Users_Groups.csv', 'XPORT_USER_GROUPS');
+create or replace schema RAW_HISTORY;
+
+create or replace TABLE XPORT_USER_GROUPS_HISTORY (
+	STG_STARTDATE DATE,
+	STG_ENDDATE DATE,
+	STG_CURRENT VARCHAR(1),
+	ENTITYNAME VARCHAR(100),
+	FORENAME VARCHAR(100),
+	SURNAME VARCHAR(100),
+	GROUPNAME VARCHAR(100),
+	CREATEDDATE VARCHAR(100),
+	ENTITYID NUMBER(38,0),
+	USERID VARCHAR(100),
+	ACCESSLEVEL VARCHAR(100),
+	GROUPENTITYID NUMBER(38,0),
+	EXTERNALIDENTIFIER VARCHAR(100)
+);
+CREATE OR REPLACE PROCEDURE "XPORT_USER_GROUPS_HISTORY_IMPORT"()
+RETURNS VARCHAR
+LANGUAGE SQL
+EXECUTE AS OWNER
+AS '
+
+DECLARE ERR_MSG STRING;
+
+BEGIN
+
+-- Identify and mark records which have changed
+
+    UPDATE DEV_XPLAN.RAW_HISTORY.XPORT_USER_GROUPS_HISTORY AS target
+    SET
+        STG_ENDDATE = CURRENT_DATE,
+        STG_CURRENT = 0
+    FROM
+        DEV_XPLAN.RAW.XPORT_USER_GROUPS AS source
+    WHERE
+        COALESCE(target.ENTITYID, '''') = COALESCE(source."EntityId", '''') AND COALESCE(target.GROUPENTITYID, 0) = COALESCE(source."GroupEntityId", 0) AND
+    	(
+            COALESCE(target.ENTITYNAME, '''') != COALESCE(source."EntityName", '''') OR
+        	COALESCE(target.FORENAME, '''') != COALESCE(source."Forename", '''') OR
+        	COALESCE(target.SURNAME, '''') != COALESCE(source."Surname", '''') OR
+        	COALESCE(target.GROUPNAME, '''') != COALESCE(source."Group Name", '''') OR  
+        	COALESCE(target.CREATEDDATE, ''1900-01-01'') != COALESCE(source."CreatedDate", ''1900-01-01'') OR    
+        	COALESCE(target.USERID, '''') != COALESCE(source."UserId", '''') OR
+        	COALESCE(target.ACCESSLEVEL, '''') != COALESCE(source."AccessLevel", '''') OR
+        	COALESCE(target.EXTERNALIDENTIFIER, '''') != COALESCE(source."ExternalIdentifier", '''')
+        ) AND
+        target.STG_ENDDATE IS NULL;
+
+-- Add records to history where they are new or modified
+
+    INSERT INTO DEV_XPLAN.RAW_HISTORY.XPORT_USER_GROUPS_HISTORY (
+    
+        STG_STARTDATE,
+        STG_ENDDATE,
+        STG_CURRENT,
+    	ENTITYNAME,
+    	FORENAME,
+    	SURNAME,
+    	GROUPNAME,
+    	CREATEDDATE,
+    	ENTITYID,
+    	USERID,
+    	ACCESSLEVEL,
+    	GROUPENTITYID,
+    	EXTERNALIDENTIFIER
+        
+    )
+    
+    SELECT
+        CURRENT_DATE,
+        NULL,
+        1,
+    	"EntityName",
+    	"Forename",
+    	"Surname",
+    	"Group Name",
+    	"CreatedDate",
+    	"EntityId",
+    	"UserId",
+    	"AccessLevel",
+    	"GroupEntityId",
+    	"ExternalIdentifier"
+    FROM
+        DEV_XPLAN.RAW.XPORT_USER_GROUPS AS source
+        LEFT JOIN DEV_XPLAN.RAW_HISTORY.XPORT_USER_GROUPS_HISTORY AS target ON
+            COALESCE(target.ENTITYID, 0) = COALESCE(source."EntityId", 0) AND 
+            COALESCE(target.GROUPENTITYID, 0) = COALESCE(source."GroupEntityId", 0) AND STG_ENDDATE IS NULL
+    WHERE
+        (target.ENTITYID IS NULL AND target.GROUPENTITYID IS NULL) OR
+        (
+            COALESCE(target.ENTITYNAME, '''') != COALESCE(source."EntityName", '''') OR
+        	COALESCE(target.FORENAME, '''') != COALESCE(source."Forename", '''') OR
+        	COALESCE(target.SURNAME, '''') != COALESCE(source."Surname", '''') OR
+        	COALESCE(target.GROUPNAME, '''') != COALESCE(source."Group Name", '''') OR  
+        	COALESCE(target.CREATEDDATE, ''1900-01-01'') != COALESCE(source."CreatedDate", ''1900-01-01'') OR    
+        	COALESCE(target.USERID, '''') != COALESCE(source."UserId", '''') OR
+        	COALESCE(target.ACCESSLEVEL, '''') != COALESCE(source."AccessLevel", '''') OR
+        	COALESCE(target.EXTERNALIDENTIFIER, '''') != COALESCE(source."ExternalIdentifier", '''')
+        );
+
+END
+';
+create or replace task XPORT_USER_GROUPS_HISTORY
+	warehouse=DEV_BI_WH_XS
+	schedule='USING CRON 0 5 * * * UTC'
+	as CALL DEV_XPLAN.RAW_HISTORY.XPORT_USER_GROUPS_HISTORY_IMPORT();
