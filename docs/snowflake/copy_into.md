@@ -43,3 +43,9 @@ FROM @smoothies.public.my_uploaded_files/fruits.txt
 ```
 SELECT COUNT(*) -1 ROW_COUNT FROM (SELECT $1 FROM @DEV_DM.RAW.RAW_INT_STG/PRICES.csv)
 
+The COPY INTO command will only import a file once, regardless of how many times it is called
+
+Additional settings are:
+```SQL
+match_by_column_name='CASE_INSENSITIVE'; -- Attempts to match the column names
+```
