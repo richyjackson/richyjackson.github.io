@@ -1,13 +1,13 @@
 ```python
-CREATE OR REPLACE PROCEDURE DEV_XPLAN.RAW.TRANSFER_SFTP_TO_TABLE("remote_file_name" VARCHAR, "destination_table" VARCHAR)
+CREATE OR REPLACE PROCEDURE TRANSFER_SFTP_TO_TABLE("remote_file_name" VARCHAR, "destination_table" VARCHAR)
 RETURNS VARCHAR
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.8'
 PACKAGES = ('paramiko','snowflake-snowpark-python')
 HANDLER = 'main'
-EXTERNAL_ACCESS_INTEGRATIONS = (SFTP_IRESS_CO_UK_EXT_INT)
-SECRETS = ('cred'=SFTP_IRESS_CO_UK_CRED)
-COMMENT='Transfers data from Xplan Xports from SFTP to Snowflake'
+EXTERNAL_ACCESS_INTEGRATIONS = (SFTP_<host>_CO_UK_EXT_INT)
+SECRETS = ('cred'=SFTP_<host>_CO_UK_CRED)
+COMMENT='Transfers data from SFTP to Snowflake'
 EXECUTE AS OWNER
 AS '
 
@@ -21,15 +21,15 @@ from datetime import datetime, timedelta
 
 def main(session: snowpark.Session, remote_file_name, destination_table):
     # SFTP Connection Details
-    sftp_host = "sftp.iress.co.uk"
+    sftp_host = "sftp.<host>.co.uk"
     sftp_port = 22
     sftp_cred = _snowflake.get_username_password("cred")
     sftp_username = sftp_cred.username
     sftp_password = sftp_cred.password
 
-    remote_file_path = "/XPORTS/" + remote_file_name
+    remote_file_path = "/<folder>/" + remote_file_name
 
-    action = remote_file_path + '' to DEV_XPLAN.RAW.'' + destination_table
+    action = remote_file_path + '' to '' + destination_table
     
     try:
     
@@ -71,7 +71,7 @@ def main(session: snowpark.Session, remote_file_name, destination_table):
         file_size = file_stat.st_size
         
         
-        sql = "INSERT INTO DEV_XPLAN.LOG.XPORT_LOG (ID, ACTION, FILE_ROW_COUNT, FILE_MODIFIED_TIME, FILE_SIZE, STATUS, MESSAGE) VALUES (DEV_XPLAN.LOG.LOG_XPORT_ID.NEXTVAL, ''" + action + "'', ''" + row_count + "'', ''" + str(file_modified_time) + "'', ''" + str(file_size) + "'', ''Success'', ''File Transferred'')"
+        sql = "INSERT INTO LOG_TABLE (ID, ACTION, FILE_ROW_COUNT, FILE_MODIFIED_TIME, FILE_SIZE, STATUS, MESSAGE) VALUES (LOG_ID.NEXTVAL, ''" + action + "'', ''" + row_count + "'', ''" + str(file_modified_time) + "'', ''" + str(file_size) + "'', ''Success'', ''File Transferred'')"
 
         session.sql(sql).collect()
 
@@ -83,7 +83,7 @@ def main(session: snowpark.Session, remote_file_name, destination_table):
 
         err_msg = f"Error: {str(e)}"
 
-        sql = "INSERT INTO DEV_XPLAN.LOG.XPORT_LOG (ID, ACTION, STATUS, MESSAGE) VALUES (DEV_XPLAN.LOG.LOG_XPORT_ID.NEXTVAL, ''" + action + "'', ''Failed'', ''" + err_msg + "'')"
+        sql = "INSERT INTO LOG_TABLE (ID, ACTION, STATUS, MESSAGE) VALUES (LOG_ID.NEXTVAL, ''" + action + "'', ''Failed'', ''" + err_msg + "'')"
 
         session.sql(sql).collect()
         
