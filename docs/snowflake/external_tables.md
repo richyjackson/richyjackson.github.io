@@ -2,14 +2,9 @@
 
 This example demonstrates how to create an external table connected to CSV files in an S3 bucket, with a materialized view on top for improved 
 
--- Verify files are accessible
-LIST @s3_sales_stage;
-
 ### Step 1: Create External Table
 
 ```sql
--- Sample CSV structure: order_id, customer_id, product, quantity, price, order_date
-
 CREATE OR REPLACE EXTERNAL TABLE sales_external
 (
   order_id INT AS (value:c1::INT),
