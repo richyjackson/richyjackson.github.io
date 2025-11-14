@@ -17,7 +17,7 @@ BEGIN
         STG_ENDDATE = CURRENT_DATE,
         STG_CURRENT = 0
     FROM
-        DEV_XPLAN.RAW.XPORT_USER_GROUPS AS source
+        USER AS source
     WHERE
         COALESCE(target.USERID, '''') = COALESCE(source."USERID", '''') AND
     	(
