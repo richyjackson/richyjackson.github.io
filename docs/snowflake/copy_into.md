@@ -49,3 +49,11 @@ Additional settings are:
 ```SQL
 match_by_column_name='CASE_INSENSITIVE'; -- Attempts to match the column names
 ```
+
+Adding a pattern:
+```SQL
+COPY INTO IPS_PORTFOLIO
+FROM '@smoothies.public.my_uploaded_files/'
+PATTERN = '<add pattern here>'
+FILE_FORMAT = (FORMAT_NAME = 'CSV_COMMA_SKIP_HEADER');
+```
