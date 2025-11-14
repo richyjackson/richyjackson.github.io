@@ -1,4 +1,4 @@
-## External Tables with Materialized Views - Complete Example
+### External Tables with Materialized Views - Complete Example
 
 This example demonstrates how to create an external table connected to CSV files in an S3 bucket, with a materialized view on top for improved 
 
