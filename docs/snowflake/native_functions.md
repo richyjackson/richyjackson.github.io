@@ -1,0 +1,5 @@
+## EXCLUDE
+Allows you to SELECT * but remove columns you don't wish to see
+```SQL
+SELECT * EXCLUDE (STG_VALID_TO, STG_VALID_FROM, IS_CURRENT) FROM MY_TABLE_HISTORY WHERE IS_CURRENT = TRUE;
+```
