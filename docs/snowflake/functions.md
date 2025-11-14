@@ -1,5 +1,17 @@
 ## Functions
+```sql
+CREATE OR REPLACE FUNCTION "CONVERT_DATE_FORMAT"("INPUT_DATE" VARCHAR)
+RETURNS VARCHAR
+LANGUAGE SQL
+AS '
 
+    CONCAT(
+        SUBSTR(INPUT_DATE, 7, 4), ''-'', -- Extract the year
+        SUBSTR(INPUT_DATE, 4, 2), ''-'', -- Extract the month
+        SUBSTR(INPUT_DATE, 1, 2) -- Extract the day
+    )
+';
+```
 The JSON library is only supported in Python 3.8
 ```SQL
 CREATE OR REPLACE FUNCTION GET_FILE_COUNT_FOR_DATE("FILE_DATE" VARCHAR)
