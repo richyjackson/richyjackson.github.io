@@ -4,7 +4,6 @@ This example demonstrates how to create an external table connected to CSV files
 
 -- Verify files are accessible
 LIST @s3_sales_stage;
-```
 
 ### Step 1: Create External Table
 
