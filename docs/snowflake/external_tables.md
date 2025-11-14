@@ -20,6 +20,7 @@ CREATE OR REPLACE EXTERNAL TABLE sales_external
   order_date DATE AS (value:c6::DATE)
 )
 WITH LOCATION = @s3_sales_stage
+PATTERN = '.*sales.csv'
 FILE_FORMAT = csv_format
 AUTO_REFRESH = TRUE
 REFRESH_ON_CREATE = TRUE;
