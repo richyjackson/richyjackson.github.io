@@ -1,0 +1,17 @@
+## Add multiple parameters via a query
+```SQL
+SELECT
+  IS_ACTIVE, SUB_PROCEDURE_NAME
+INTO
+  :V_IS_ACTIVE, :V_SUB_PROCEDURE_NAME
+FROM
+  CONTROL.BATCH_CONFIG WHERE BATCH_ID = :P_BATCH_ID;
+```
+## Add variables to an OBJECT_CONSTRUCT
+```sql
+OBJECT_CONSTRUCT('IS_ACTIVE', :V_IS_ACTIVE, 'STATUS', 'FAILED', 'ERR_MSG', 'Inactive batch')
+```
+### Call a procedure as a variable and return OBJECT_CONSTRUCT values
+```sql
+CALL IDENTIFIER (:V_SUB_PROCEDURE_NAME) (:P_BATCH_ID, :P_PROCESS_RUN_ID) INTO :V_RETURN_OBJECT_CONSTRUCT;
+```
