@@ -57,3 +57,7 @@ FROM '@smoothies.public.my_uploaded_files/'
 PATTERN = '<add pattern here>'
 FILE_FORMAT = (FORMAT_NAME = 'CSV_COMMA_SKIP_HEADER');
 ```
+
+When adding a pattern, the file type must still be added.
+
+! Add detail on how to create patterns !
