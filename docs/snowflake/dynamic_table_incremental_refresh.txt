@@ -1,27 +1,27 @@
--- =====================================================================================
--- CDC (Change Data Capture) Pattern for Snowflake Data Share Materialization
--- =====================================================================================
--- Purpose: Materialize and incrementally refresh ACCOUNT_BASIC_VIEW from a data share
--- Author: Data Engineering Team
--- Database: DEMO_DB | Schema: TBL
--- 
--- Pattern Overview:
---   1. Source: ACCOUNT_BASIC_VIEW (secured view from data share)
---   2. Landing: raw_cdc_test_no_key (inserts/updates) + raw_cdc_test_no_key_DELETES
---   3. Consumer: raw_cdc_test_no_key_CURRENT_VIEW (view showing current state)
---   4. Refresh: Incremental using MINUS operator to detect changes
---
--- Key Design Decisions:
---   • No Primary Key: Uses MD5 hashing of entire record for change detection
---   • Temporal Tracking: _LDTS column captures DML timestamp
---   • Physical Deletes: Captured separately and handled in consolidated view
---   • INSERT Only: Only changed records are processed (efficient for large datasets)
--- =====================================================================================
+ =====================================================================================
+ CDC (Change Data Capture) Pattern for Snowflake Data Share Materialization
+ =====================================================================================
+ Purpose: Materialize and incrementally refresh ACCOUNT_BASIC_VIEW from a data share
+ Author: Data Engineering Team
+ Database: DEMO_DB | Schema: TBL
+ 
+ Pattern Overview:
+   1. Source: ACCOUNT_BASIC_VIEW (secured view from data share)
+   2. Landing: raw_cdc_test_no_key (inserts/updates) + raw_cdc_test_no_key_DELETES
+   3. Consumer: raw_cdc_test_no_key_CURRENT_VIEW (view showing current state)
+   4. Refresh: Incremental using MINUS operator to detect changes
 
--- =====================================================================================
--- Session Configuration
--- =====================================================================================
--- Configure output formats and timezone for consistency across runs
+ Key Design Decisions:
+   • No Primary Key: Uses MD5 hashing of entire record for change detection
+   • Temporal Tracking: _LDTS column captures DML timestamp
+   • Physical Deletes: Captured separately and handled in consolidated view
+   • INSERT Only: Only changed records are processed (efficient for large datasets)
+ =====================================================================================
+
+ =====================================================================================
+ Session Configuration
+ =====================================================================================
+ Configure output formats and timezone for consistency across runs
 ALTER SESSION SET   BINARY_OUTPUT_FORMAT = HEX
                     DATE_OUTPUT_FORMAT = 'YYYY-MM-DD'
                     JSON_INDENT = 2
@@ -33,9 +33,9 @@ ALTER SESSION SET   BINARY_OUTPUT_FORMAT = HEX
                     TIME_OUTPUT_FORMAT = 'HH24:MI:SS.FF3'
                     QUERY_TAG = 'TBL REGULAR WORK';
 
--- =====================================================================================
--- Environment Setup
--- =====================================================================================
+ =====================================================================================
+ Environment Setup
+ =====================================================================================
 USE ROLE DEVELOPER;
 USE WAREHOUSE DEFAULT_WH;
 USE DATABASE DEMO_DB;
@@ -43,36 +43,36 @@ CREATE OR REPLACE TRANSIENT SCHEMA TBL;
 
 USE SCHEMA DEMO_DB.TBL;
 
--- =====================================================================================
--- Step 1: Source Table Setup
--- =====================================================================================
--- ACCOUNT_BASIC_VIEW: Represents the secured view from the data share (source of truth)
--- In production, this would be: SELECT * FROM <data_share>.<schema>.ACCOUNT_BASIC_VIEW
+ =====================================================================================
+ Step 1: Source Table Setup
+ =====================================================================================
+ ACCOUNT_BASIC_VIEW: Represents the secured view from the data share (source of truth)
+ In production, this would be: SELECT * FROM <data_share>.<schema>.ACCOUNT_BASIC_VIEW
 CREATE OR REPLACE TABLE ACCOUNT_BASIC_VIEW AS SELECT * FROM SNOWFLAKE_SAMPLE_DATA.TPCH_SF1.CUSTOMER;
 
--- =====================================================================================
--- Step 2: CDC Landing Tables
--- =====================================================================================
--- raw_cdc_test_no_key: Captures NEW and UPDATED records from the source
--- _LDTS: Load Date Timestamp - technical column capturing when the DML occurred
+ =====================================================================================
+ Step 2: CDC Landing Tables
+ =====================================================================================
+ raw_cdc_test_no_key: Captures NEW and UPDATED records from the source
+ _LDTS: Load Date Timestamp - technical column capturing when the DML occurred
 CREATE OR REPLACE TABLE raw_cdc_test_no_key LIKE SNOWFLAKE_SAMPLE_DATA.TPCH_SF1.CUSTOMER;
 ALTER TABLE raw_cdc_test_no_key ADD COLUMN _LDTS timestamp_ltz;
 
--- raw_cdc_test_no_key_DELETES: Captures DELETED records (records that disappeared from source)
--- These are records that existed in our consolidated view but no longer exist in source
+ raw_cdc_test_no_key_DELETES: Captures DELETED records (records that disappeared from source)
+ These are records that existed in our consolidated view but no longer exist in source
 CREATE OR REPLACE TRANSIENT TABLE raw_cdc_test_no_key_DELETES LIKE SNOWFLAKE_SAMPLE_DATA.TPCH_SF1.CUSTOMER;
 ALTER TABLE raw_cdc_test_no_key_DELETES ADD COLUMN _LDTS timestamp_ltz;
 
 
 CREATE OR REPLACE VIEW raw_cdc_test_no_key_CURRENT_VIEW AS
 WITH CTE_BASIC AS (
-    -- ---------------------------------------------------------------------------------
-    -- CTE 1: Combine all CDC events (inserts/updates and deletes) into one dataset
-    -- ---------------------------------------------------------------------------------
-    -- Union NEW/UPDATED records with DELETED records to create a complete event history
-    -- Each record gets a hash to uniquely identify its content (excluding temporal columns)
+     -------------------------------------------------------------------------------
+     CTE 1: Combine all CDC events (inserts/updates and deletes) into one dataset
+     -------------------------------------------------------------------------------
+     Union NEW/UPDATED records with DELETED records to create a complete event history
+     Each record gets a hash to uniquely identify its content (excluding temporal columns)
     
-    -- Part A: Records from the insert/update table
+     Part A: Records from the insert/update table
     SELECT 
         * 
         , 'NEW OR UPDATED RECORD' AS DML_EVENT_TYPE
@@ -87,7 +87,7 @@ WITH CTE_BASIC AS (
     
     UNION ALL
     
-    -- Part B: Records from the deletes table
+     Part B: Records from the deletes table
     SELECT 
         * 
         , 'DELETED RECORD' AS DML_EVENT_TYPE
@@ -101,11 +101,11 @@ WITH CTE_BASIC AS (
         raw_cdc_test_no_key_DELETES
 )
 , CTE_SEQUENCING AS (
-    -- ---------------------------------------------------------------------------------
-    -- CTE 2: Apply temporal sequencing to track record lifecycle
-    -- ---------------------------------------------------------------------------------
-    -- Use LEAD window function to look ahead to the next event for the same record
-    -- This helps identify if a record has been subsequently deleted
+     -------------------------------------------------------------------------------
+     CTE 2: Apply temporal sequencing to track record lifecycle
+     -------------------------------------------------------------------------------
+     Use LEAD window function to look ahead to the next event for the same record
+     This helps identify if a record has been subsequently deleted
     
     SELECT 
         *, 
@@ -117,16 +117,16 @@ WITH CTE_BASIC AS (
         CTE_BASIC 
 )
 , CTE_FINAL AS (
-    -- ---------------------------------------------------------------------------------
-    -- CTE 3: Filter to show only currently active records
-    -- ---------------------------------------------------------------------------------
-    -- Logic: A record is ACTIVE if:
-    --   1. Its last event type was 'NEW OR UPDATED RECORD' (not a delete)
-    --   2. There is no subsequent event (_LEAD_RECORD_HASH IS NULL = last event)
-    -- 
-    -- This effectively filters out:
-    --   - Deleted records (their last event was 'DELETED RECORD')
-    --   - Historical versions (they have subsequent events)
+     -------------------------------------------------------------------------------
+     CTE 3: Filter to show only currently active records
+     -------------------------------------------------------------------------------
+     Logic: A record is ACTIVE if:
+       1. Its last event type was 'NEW OR UPDATED RECORD' (not a delete)
+       2. There is no subsequent event (_LEAD_RECORD_HASH IS NULL = last event)
+     
+     This effectively filters out:
+       - Deleted records (their last event was 'DELETED RECORD')
+       - Historical versions (they have subsequent events)
     
     SELECT 
         * 
@@ -136,10 +136,10 @@ WITH CTE_BASIC AS (
         DML_EVENT_TYPE = 'NEW OR UPDATED RECORD'    -- Must be an active record
     AND _LEAD_RECORD_HASH IS NULL                   -- Must be the latest version
 )
--- ---------------------------------------------------------------------------------
--- Final Output: Clean dataset with only business columns and technical timestamp
--- ---------------------------------------------------------------------------------
--- Remove internal CDC columns (DML_EVENT_TYPE, hashes) from consumer view
+ -------------------------------------------------------------------------------
+ Final Output: Clean dataset with only business columns and technical timestamp
+ -------------------------------------------------------------------------------
+ Remove internal CDC columns (DML_EVENT_TYPE, hashes) from consumer view
 SELECT 
     * EXCLUDE(DML_EVENT_TYPE, _RECORD_HASH, _LEAD_RECORD_HASH)
 FROM 
@@ -148,54 +148,54 @@ FROM
 
 
 
--- =====================================================================================
--- Step 3: Incremental Refresh - Capture Changes
--- =====================================================================================
--- This section performs the incremental refresh by comparing source to consolidated view
--- Run this section repeatedly (e.g., scheduled via Snowflake Task) to capture changes
+ =====================================================================================
+ Step 3: Incremental Refresh - Capture Changes
+ =====================================================================================
+ This section performs the incremental refresh by comparing source to consolidated view
+ Run this section repeatedly (e.g., scheduled via Snowflake Task) to capture changes
 
--- ---------------------------------------------------------------------------------
--- 3A. Capture NEW or CHANGED records (Inserts and Updates)
--- ---------------------------------------------------------------------------------
--- Logic: 
---   • Take all records from source (ACCOUNT_BASIC_VIEW)
---   • MINUS all records already in consolidated view
---   • Result = new or changed records only
--- 
--- Performance Note: MINUS operator is efficient in Snowflake; only changed data is inserted
+ -------------------------------------------------------------------------------
+ 3A. Capture NEW or CHANGED records (Inserts and Updates)
+ -------------------------------------------------------------------------------
+ Logic: 
+   • Take all records from source (ACCOUNT_BASIC_VIEW)
+   • MINUS all records already in consolidated view
+   • Result = new or changed records only
+ 
+ Performance Note: MINUS operator is efficient in Snowflake; only changed data is inserted
 INSERT INTO raw_cdc_test_no_key
     SELECT *, CURRENT_TIMESTAMP AS _LDTS FROM ACCOUNT_BASIC_VIEW
     MINUS
     SELECT * EXCLUDE (_LDTS), CURRENT_TIMESTAMP AS _LDTS FROM raw_cdc_test_no_key_CURRENT_VIEW;
 
--- ---------------------------------------------------------------------------------
--- 3B. Capture DELETED records (Physical Deletes)
--- ---------------------------------------------------------------------------------
--- Logic:
---   • Take all records from consolidated view (what we think exists)
---   • MINUS all records in source (what actually exists)
---   • Result = records that were deleted from source
--- 
--- Note: This captures physical deletes that occurred in the source data share
+ -------------------------------------------------------------------------------
+ 3B. Capture DELETED records (Physical Deletes)
+ -------------------------------------------------------------------------------
+ Logic:
+   • Take all records from consolidated view (what we think exists)
+   • MINUS all records in source (what actually exists)
+   • Result = records that were deleted from source
+ 
+ Note: This captures physical deletes that occurred in the source data share
 INSERT INTO raw_cdc_test_no_key_DELETES
 SELECT * EXCLUDE (_LDTS), CURRENT_TIMESTAMP AS _LDTS FROM raw_cdc_test_no_key_CURRENT_VIEW
 MINUS
 SELECT *, CURRENT_TIMESTAMP AS _LDTS FROM ACCOUNT_BASIC_VIEW;
 
--- =====================================================================================
--- UNIT TEST CASES
--- =====================================================================================
--- The following test cases validate the CDC pattern behavior
--- Execute each test case in sequence to verify the solution works correctly
--- =====================================================================================
+ =====================================================================================
+ UNIT TEST CASES
+ =====================================================================================
+ The following test cases validate the CDC pattern behavior
+ Execute each test case in sequence to verify the solution works correctly
+ =====================================================================================
 
--- =====================================================================================
--- TEST CASE 0: Initial State Validation
--- =====================================================================================
--- Purpose: Verify initial load captured all records correctly
--- Expected: All records from source should be in consolidated view
+ =====================================================================================
+ TEST CASE 0: Initial State Validation
+ =====================================================================================
+ Purpose: Verify initial load captured all records correctly
+ Expected: All records from source should be in consolidated view
 
--- Test 0.1: Count comparison
+ Test 0.1: Count comparison
 SELECT 'Test 0.1: Record count comparison' AS test_name;
 SELECT 
     'SOURCE' AS location,
@@ -217,9 +217,9 @@ SELECT
     COUNT(*) AS record_count
 FROM raw_cdc_test_no_key_DELETES;
 
--- Expected Result: SOURCE = CONSOLIDATED = RAW_CDC, DELETES = 0
+ Expected Result: SOURCE = CONSOLIDATED = RAW_CDC, DELETES = 0
 
--- Test 0.2: Verify no records in delete table
+ Test 0.2: Verify no records in delete table
 SELECT 'Test 0.2: Verify no deletes after initial load' AS test_name;
 SELECT 
     CASE 
@@ -228,19 +228,19 @@ SELECT
     END AS test_result
 FROM raw_cdc_test_no_key_DELETES;
 
--- =====================================================================================
--- TEST CASE 1: Insert New Records
--- =====================================================================================
--- Purpose: Test that new records are captured correctly
--- Expected: New records appear in consolidated view after refresh
+ =====================================================================================
+ TEST CASE 1: Insert New Records
+ =====================================================================================
+ Purpose: Test that new records are captured correctly
+ Expected: New records appear in consolidated view after refresh
 
 SELECT 'Test 1: Insert New Records' AS test_name;
 
--- Save baseline count
+ Save baseline count
 CREATE OR REPLACE TEMPORARY TABLE test_baseline AS
 SELECT COUNT(*) AS baseline_count FROM raw_cdc_test_no_key_CURRENT_VIEW;
 
--- Step 1.1: Insert 3 new customers into source
+ Step 1.1: Insert 3 new customers into source
 INSERT INTO ACCOUNT_BASIC_VIEW 
 SELECT 
     999991 AS C_CUSTKEY,
@@ -256,7 +256,7 @@ SELECT 999992, 'Test Customer 2', 'Test Address 2', 2, '222-222-2222', 2000.00, 
 UNION ALL
 SELECT 999993, 'Test Customer 3', 'Test Address 3', 3, '333-333-3333', 3000.00, 'FURNITURE', 'Third test customer';
 
--- Step 1.2: Run incremental refresh (capture inserts)
+ Step 1.2: Run incremental refresh (capture inserts)
 INSERT INTO raw_cdc_test_no_key
     SELECT *, CURRENT_TIMESTAMP AS _LDTS FROM ACCOUNT_BASIC_VIEW
     MINUS
@@ -267,7 +267,7 @@ INSERT INTO raw_cdc_test_no_key_DELETES
     MINUS
     SELECT *, CURRENT_TIMESTAMP AS _LDTS FROM ACCOUNT_BASIC_VIEW;
 
--- Step 1.3: Validate new records are captured
+ Step 1.3: Validate new records are captured
 SELECT 'Test 1.1: Verify 3 new records captured' AS test_name;
 SELECT 
     CASE 
@@ -277,7 +277,7 @@ SELECT
 FROM raw_cdc_test_no_key_CURRENT_VIEW
 WHERE C_CUSTKEY IN (999991, 999992, 999993);
 
--- Test 1.4: Verify total count increased by 3
+ Test 1.4: Verify total count increased by 3
 SELECT 'Test 1.2: Verify total count increased by 3' AS test_name;
 SELECT 
     CASE 
@@ -289,15 +289,15 @@ FROM (
 ) curr
 CROSS JOIN test_baseline;
 
--- =====================================================================================
--- TEST CASE 2: Update Existing Records
--- =====================================================================================
--- Purpose: Test that updated records are captured correctly
--- Expected: Updated records should appear in consolidated view with new values
+ =====================================================================================
+ TEST CASE 2: Update Existing Records
+ =====================================================================================
+ Purpose: Test that updated records are captured correctly
+ Expected: Updated records should appear in consolidated view with new values
 
 SELECT 'Test 2: Update Existing Records' AS test_name;
 
--- Step 2.1: Update one of the test customers
+ Step 2.1: Update one of the test customers
 UPDATE ACCOUNT_BASIC_VIEW
 SET 
     C_NAME = 'Test Customer 1 - UPDATED',
@@ -305,7 +305,7 @@ SET
     C_COMMENT = 'Updated for CDC testing'
 WHERE C_CUSTKEY = 999991;
 
--- Step 2.2: Run incremental refresh (capture updates)
+ Step 2.2: Run incremental refresh (capture updates)
 INSERT INTO raw_cdc_test_no_key
     SELECT *, CURRENT_TIMESTAMP AS _LDTS FROM ACCOUNT_BASIC_VIEW
     MINUS
@@ -316,7 +316,7 @@ INSERT INTO raw_cdc_test_no_key_DELETES
     MINUS
     SELECT *, CURRENT_TIMESTAMP AS _LDTS FROM ACCOUNT_BASIC_VIEW;
 
--- Step 2.3: Validate update was captured
+ Step 2.3: Validate update was captured
 SELECT 'Test 2.1: Verify record was updated' AS test_name;
 SELECT 
     CASE 
@@ -330,7 +330,7 @@ SELECT
 FROM raw_cdc_test_no_key_CURRENT_VIEW
 WHERE C_CUSTKEY = 999991;
 
--- Test 2.4: Verify we have multiple versions in raw_cdc table
+ Test 2.4: Verify we have multiple versions in raw_cdc table
 SELECT 'Test 2.2: Verify history captured in raw_cdc table' AS test_name;
 SELECT 
     CASE 
@@ -340,22 +340,22 @@ SELECT
 FROM raw_cdc_test_no_key
 WHERE C_CUSTKEY = 999991;
 
--- =====================================================================================
--- TEST CASE 3: Delete Records
--- =====================================================================================
--- Purpose: Test that deleted records are captured correctly
--- Expected: Deleted records should disappear from consolidated view
+ =====================================================================================
+ TEST CASE 3: Delete Records
+ =====================================================================================
+ Purpose: Test that deleted records are captured correctly
+ Expected: Deleted records should disappear from consolidated view
 
 SELECT 'Test 3: Delete Records' AS test_name;
 
--- Step 3.1: Save count before delete
+ Step 3.1: Save count before delete
 CREATE OR REPLACE TEMPORARY TABLE test_before_delete AS
 SELECT COUNT(*) AS count_before FROM raw_cdc_test_no_key_CURRENT_VIEW;
 
--- Step 3.2: Delete one test customer from source
+ Step 3.2: Delete one test customer from source
 DELETE FROM ACCOUNT_BASIC_VIEW WHERE C_CUSTKEY = 999992;
 
--- Step 3.3: Run incremental refresh (capture deletes)
+ Step 3.3: Run incremental refresh (capture deletes)
 INSERT INTO raw_cdc_test_no_key
     SELECT *, CURRENT_TIMESTAMP AS _LDTS FROM ACCOUNT_BASIC_VIEW
     MINUS
@@ -366,7 +366,7 @@ INSERT INTO raw_cdc_test_no_key_DELETES
     MINUS
     SELECT *, CURRENT_TIMESTAMP AS _LDTS FROM ACCOUNT_BASIC_VIEW;
 
--- Step 3.4: Verify record is deleted from consolidated view
+ Step 3.4: Verify record is deleted from consolidated view
 SELECT 'Test 3.1: Verify record deleted from consolidated view' AS test_name;
 SELECT 
     CASE 
@@ -376,7 +376,7 @@ SELECT
 FROM raw_cdc_test_no_key_CURRENT_VIEW
 WHERE C_CUSTKEY = 999992;
 
--- Test 3.5: Verify record exists in delete table
+ Test 3.5: Verify record exists in delete table
 SELECT 'Test 3.2: Verify record captured in delete table' AS test_name;
 SELECT 
     CASE 
@@ -386,7 +386,7 @@ SELECT
 FROM raw_cdc_test_no_key_DELETES
 WHERE C_CUSTKEY = 999992;
 
--- Test 3.6: Verify total count decreased by 1
+ Test 3.6: Verify total count decreased by 1
 SELECT 'Test 3.3: Verify total count decreased by 1' AS test_name;
 SELECT 
     CASE 
@@ -398,19 +398,19 @@ FROM (
 ) curr
 CROSS JOIN test_before_delete;
 
--- =====================================================================================
--- TEST CASE 4: Re-insert Previously Deleted Record
--- =====================================================================================
--- Purpose: Test that re-inserting a deleted record works correctly
--- Expected: Record should reappear in consolidated view
+ =====================================================================================
+ TEST CASE 4: Re-insert Previously Deleted Record
+ =====================================================================================
+ Purpose: Test that re-inserting a deleted record works correctly
+ Expected: Record should reappear in consolidated view
 
 SELECT 'Test 4: Re-insert Previously Deleted Record' AS test_name;
 
--- Step 4.1: Re-insert the deleted customer
+ Step 4.1: Re-insert the deleted customer
 INSERT INTO ACCOUNT_BASIC_VIEW 
 SELECT 999992, 'Test Customer 2 - REINSERTED', 'Test Address 2 Updated', 2, '222-222-2222', 5000.00, 'BUILDING', 'Re-inserted test customer';
 
--- Step 4.2: Run incremental refresh
+ Step 4.2: Run incremental refresh
 INSERT INTO raw_cdc_test_no_key
     SELECT *, CURRENT_TIMESTAMP AS _LDTS FROM ACCOUNT_BASIC_VIEW
     MINUS
@@ -421,7 +421,7 @@ INSERT INTO raw_cdc_test_no_key_DELETES
     MINUS
     SELECT *, CURRENT_TIMESTAMP AS _LDTS FROM ACCOUNT_BASIC_VIEW;
 
--- Step 4.3: Verify record reappears in consolidated view
+ Step 4.3: Verify record reappears in consolidated view
 SELECT 'Test 4.1: Verify record reappears in consolidated view' AS test_name;
 SELECT 
     CASE 
@@ -432,28 +432,28 @@ SELECT
 FROM raw_cdc_test_no_key_CURRENT_VIEW
 WHERE C_CUSTKEY = 999992;
 
--- =====================================================================================
--- TEST CASE 5: Multiple Operations in Single Refresh
--- =====================================================================================
--- Purpose: Test multiple operations (insert, update, delete) in one refresh cycle
--- Expected: All operations should be captured correctly
+ =====================================================================================
+ TEST CASE 5: Multiple Operations in Single Refresh
+ =====================================================================================
+ Purpose: Test multiple operations (insert, update, delete) in one refresh cycle
+ Expected: All operations should be captured correctly
 
 SELECT 'Test 5: Multiple Operations in Single Refresh' AS test_name;
 
--- Step 5.1: Perform multiple operations
--- Insert new record
+ Step 5.1: Perform multiple operations
+ Insert new record
 INSERT INTO ACCOUNT_BASIC_VIEW 
 SELECT 999994, 'Test Customer 4', 'Test Address 4', 4, '444-444-4444', 4000.00, 'MACHINERY', 'Fourth test customer';
 
--- Update existing record
+ Update existing record
 UPDATE ACCOUNT_BASIC_VIEW
 SET C_ACCTBAL = 7777.77
 WHERE C_CUSTKEY = 999993;
 
--- Delete a record
+ Delete a record
 DELETE FROM ACCOUNT_BASIC_VIEW WHERE C_CUSTKEY = 999991;
 
--- Step 5.2: Run single incremental refresh capturing all changes
+ Step 5.2: Run single incremental refresh capturing all changes
 INSERT INTO raw_cdc_test_no_key
     SELECT *, CURRENT_TIMESTAMP AS _LDTS FROM ACCOUNT_BASIC_VIEW
     MINUS
@@ -464,7 +464,7 @@ INSERT INTO raw_cdc_test_no_key_DELETES
     MINUS
     SELECT *, CURRENT_TIMESTAMP AS _LDTS FROM ACCOUNT_BASIC_VIEW;
 
--- Step 5.3: Verify insert
+ Step 5.3: Verify insert
 SELECT 'Test 5.1: Verify insert in multi-operation refresh' AS test_name;
 SELECT 
     CASE 
@@ -474,7 +474,7 @@ SELECT
 FROM raw_cdc_test_no_key_CURRENT_VIEW
 WHERE C_CUSTKEY = 999994;
 
--- Step 5.4: Verify update
+ Step 5.4: Verify update
 SELECT 'Test 5.2: Verify update in multi-operation refresh' AS test_name;
 SELECT 
     CASE 
@@ -484,7 +484,7 @@ SELECT
 FROM raw_cdc_test_no_key_CURRENT_VIEW
 WHERE C_CUSTKEY = 999993;
 
--- Step 5.5: Verify delete
+ Step 5.5: Verify delete
 SELECT 'Test 5.3: Verify delete in multi-operation refresh' AS test_name;
 SELECT 
     CASE 
@@ -494,15 +494,15 @@ SELECT
 FROM raw_cdc_test_no_key_CURRENT_VIEW
 WHERE C_CUSTKEY = 999991;
 
--- =====================================================================================
--- TEST CASE 6: Data Quality Validations
--- =====================================================================================
--- Purpose: Validate data quality and consistency across tables
--- Expected: No orphan records, counts match, no duplicates in consolidated view
+ =====================================================================================
+ TEST CASE 6: Data Quality Validations
+ =====================================================================================
+ Purpose: Validate data quality and consistency across tables
+ Expected: No orphan records, counts match, no duplicates in consolidated view
 
 SELECT 'Test 6: Data Quality Validations' AS test_name;
 
--- Test 6.1: Verify no duplicates in consolidated view (by business key)
+ Test 6.1: Verify no duplicates in consolidated view (by business key)
 SELECT 'Test 6.1: Check for duplicates in consolidated view' AS test_name;
 SELECT 
     CASE 
@@ -515,7 +515,7 @@ FROM (
     GROUP BY C_CUSTKEY
 );
 
--- Test 6.2: Verify consolidated view matches source
+ Test 6.2: Verify consolidated view matches source
 SELECT 'Test 6.2: Consolidated view matches source' AS test_name;
 SELECT 
     CASE 
@@ -529,7 +529,7 @@ CROSS JOIN (
     SELECT COUNT(*) AS consolidated_count FROM raw_cdc_test_no_key_CURRENT_VIEW
 ) cons;
 
--- Test 6.3: Verify _LDTS is populated for all records
+ Test 6.3: Verify _LDTS is populated for all records
 SELECT 'Test 6.3: Verify _LDTS populated' AS test_name;
 SELECT 
     CASE 
@@ -539,7 +539,7 @@ SELECT
 FROM raw_cdc_test_no_key
 WHERE _LDTS IS NULL;
 
--- Test 6.4: Verify record hash consistency
+ Test 6.4: Verify record hash consistency
 SELECT 'Test 6.4: Verify record hash logic' AS test_name;
 WITH hash_test AS (
     SELECT 
@@ -559,11 +559,11 @@ SELECT
     END AS test_result
 FROM hash_test;
 
--- =====================================================================================
--- TEST CASE 7: Summary Report
--- =====================================================================================
--- Purpose: Provide overall summary of CDC table states
--- Expected: Clear view of record distribution across tables
+ =====================================================================================
+ TEST CASE 7: Summary Report
+ =====================================================================================
+ Purpose: Provide overall summary of CDC table states
+ Expected: Clear view of record distribution across tables
 
 SELECT 'Test 7: Summary Report' AS test_name;
 
@@ -603,18 +603,18 @@ SELECT
 FROM raw_cdc_test_no_key_CURRENT_VIEW
 WHERE C_CUSTKEY BETWEEN 999990 AND 999999;
 
--- =====================================================================================
--- TEST CASE 8: Cleanup Test Data
--- =====================================================================================
--- Purpose: Clean up test records created during unit testing
--- Note: Comment this out if you want to inspect test data
+ =====================================================================================
+ TEST CASE 8: Cleanup Test Data
+ =====================================================================================
+ Purpose: Clean up test records created during unit testing
+ Note: Comment this out if you want to inspect test data
 
 SELECT 'Test 8: Cleanup - Remove test data' AS test_name;
 
--- Remove test customers from source
+ Remove test customers from source
 DELETE FROM ACCOUNT_BASIC_VIEW WHERE C_CUSTKEY BETWEEN 999990 AND 999999;
 
--- Run final refresh to clean up CDC tables
+ Run final refresh to clean up CDC tables
 INSERT INTO raw_cdc_test_no_key
     SELECT *, CURRENT_TIMESTAMP AS _LDTS FROM ACCOUNT_BASIC_VIEW
     MINUS
@@ -625,7 +625,7 @@ INSERT INTO raw_cdc_test_no_key_DELETES
     MINUS
     SELECT *, CURRENT_TIMESTAMP AS _LDTS FROM ACCOUNT_BASIC_VIEW;
 
--- Verify cleanup
+ Verify cleanup
 SELECT 'Test 8.1: Verify test data removed from consolidated view' AS test_name;
 SELECT 
     CASE 
@@ -635,196 +635,196 @@ SELECT
 FROM raw_cdc_test_no_key_CURRENT_VIEW
 WHERE C_CUSTKEY BETWEEN 999990 AND 999999;
 
--- Drop temporary tables
+ Drop temporary tables
 DROP TABLE IF EXISTS test_baseline;
 DROP TABLE IF EXISTS test_before_delete;
 
 SELECT '=== ALL UNIT TESTS COMPLETED ===' AS test_status;
 
--- =====================================================================================
--- PRODUCTION DEPLOYMENT GUIDE
--- =====================================================================================
--- 
--- ARCHITECTURE SUMMARY:
--- ┌─────────────────────────────────────────────────────────────────────────────────┐
--- │                                                                                 │
--- │  ┌─────────────────────┐                                                       │
--- │  │  DATA SHARE SOURCE  │                                                       │
--- │  │ ACCOUNT_BASIC_VIEW  │ (Secured View from External Data Share)              │
--- │  └──────────┬──────────┘                                                       │
--- │             │                                                                   │
--- │             ▼ MINUS Comparison (Incremental Refresh)                           │
--- │             │                                                                   │
--- │  ┌──────────┴──────────────────────────────────────────────┐                  │
--- │  │                                                           │                  │
--- │  ▼                                                           ▼                  │
--- │  ┌───────────────────────────┐           ┌─────────────────────────────┐      │
--- │  │  raw_cdc_test_no_key      │           │ raw_cdc_test_no_key_DELETES │      │
--- │  │  (Inserts & Updates)      │           │    (Physical Deletes)       │      │
--- │  │  + _LDTS timestamp        │           │    + _LDTS timestamp        │      │
--- │  └─────────────┬─────────────┘           └──────────────┬──────────────┘      │
--- │                │                                         │                     │
--- │                └─────────────────┬───────────────────────┘                     │
--- │                                  │                                             │
--- │                                  ▼ UNION ALL + MD5 Hashing                     │
--- │                                  │                                             │
--- │                  ┌───────────────────────────────────────┐                    │
--- │                  │  raw_cdc_test_no_key_CURRENT_VIEW     │                    │
--- │                  │           (VIEW)                       │                    │
--- │                  │  - Combines both tables                │                    │
--- │                  │  - Uses LEAD() for temporal logic      │                    │
--- │                  │  - Shows only current active records   │                    │
--- │                  └───────────────┬───────────────────────┘                    │
--- │                                  │                                             │
--- │                                  ▼                                             │
--- │                          ┌───────────────┐                                     │
--- │                          │  CONSUMERS    │                                     │
--- │                          │  (BI Tools,   │                                     │
--- │                          │   Analytics)  │                                     │
--- │                          └───────────────┘                                     │
--- │                                                                                 │
--- └─────────────────────────────────────────────────────────────────────────────────┘
---
--- =====================================================================================
--- PRODUCTION RECOMMENDATIONS
--- =====================================================================================
---
--- 1. AUTOMATION - Create Stored Procedure:
---    Wrap the incremental refresh logic (Step 3) into a stored procedure:
---
---    CREATE OR REPLACE PROCEDURE sp_refresh_account_cdc()
---    RETURNS STRING
---    LANGUAGE SQL
---    AS
---    $$
---    BEGIN
---        -- Insert new/updated records
---        INSERT INTO raw_cdc_test_no_key
---            SELECT *, CURRENT_TIMESTAMP AS _LDTS FROM ACCOUNT_BASIC_VIEW
---            MINUS
---            SELECT * EXCLUDE (_LDTS), CURRENT_TIMESTAMP AS _LDTS 
---            FROM raw_cdc_test_no_key_CURRENT_VIEW;
---        
---        -- Capture deletes
---        INSERT INTO raw_cdc_test_no_key_DELETES
---            SELECT * EXCLUDE (_LDTS), CURRENT_TIMESTAMP AS _LDTS 
---            FROM raw_cdc_test_no_key_CURRENT_VIEW
---            MINUS
---            SELECT *, CURRENT_TIMESTAMP AS _LDTS FROM ACCOUNT_BASIC_VIEW;
---        
---        RETURN 'CDC refresh completed successfully';
---    END;
---    $$;
---
--- 2. SCHEDULING - Create Snowflake Task:
---    Schedule the procedure to run at regular intervals:
---
---    CREATE OR REPLACE TASK task_refresh_account_cdc
---    WAREHOUSE = DEFAULT_WH
---    SCHEDULE = 'USING CRON 0 */1 * * * Europe/London'  -- Every hour
---    AS
---    CALL sp_refresh_account_cdc();
---
---    ALTER TASK task_refresh_account_cdc RESUME;
---
--- 3. MONITORING - Add Observability:
---    • Create audit table to track refresh metrics:
---      - Refresh start/end timestamps
---      - Records inserted/updated/deleted
---      - Execution duration
---      - Error messages
---    • Set up alerts for:
---      - Task failures
---      - Unexpected data volume changes
---      - Long-running refreshes
---
--- 4. ERROR HANDLING:
---    • Add TRY-CATCH blocks in stored procedure
---    • Implement retry logic for transient failures
---    • Log errors to audit table
---    • Send notifications on critical failures
---
--- 5. PERFORMANCE OPTIMIZATION:
---    • For large datasets (millions of rows), consider:
---      - Clustering keys on raw_cdc tables (if access patterns support it)
---      - Materializing the CONSOLIDATED view as a table
---      - Partitioning by _LDTS for historical analysis
---      - Using STREAMS instead of MINUS if source supports it
---
--- 6. DATA RETENTION:
---    • Define retention policy for raw_cdc tables
---    • Archive historical versions to cold storage if needed
---    • Implement purge process for old _LDTS records
---    Example:
---      DELETE FROM raw_cdc_test_no_key 
---      WHERE _LDTS < DATEADD(day, -90, CURRENT_TIMESTAMP)
---      AND C_CUSTKEY NOT IN (
---          SELECT C_CUSTKEY FROM raw_cdc_test_no_key_CURRENT_VIEW
---      );
---
--- 7. DATA QUALITY:
---    • Schedule regular data quality checks
---    • Compare record counts: source vs consolidated
---    • Monitor for unexpected spikes in deletes
---    • Validate key business metrics remain consistent
---
--- 8. SECURITY:
---    • Grant appropriate permissions:
---      - Consumers: SELECT on raw_cdc_test_no_key_CURRENT_VIEW only
---      - ETL Role: INSERT on raw_cdc tables
---      - Admin: Full access for troubleshooting
---    • Enable row-level security if needed
---    • Audit access to sensitive data
---
--- 9. DISASTER RECOVERY:
---    • Regular backups of raw_cdc tables
---    • Document full refresh procedure
---    • Test recovery process quarterly
---    • Maintain runbook for common issues
---
--- 10. SCALABILITY CONSIDERATIONS:
---     • This pattern scales well to millions of records
---     • MINUS operator is efficient in Snowflake
---     • Consider micro-batch processing for extremely large datasets
---     • Monitor warehouse sizing and adjust as needed
---
--- =====================================================================================
--- TROUBLESHOOTING GUIDE
--- =====================================================================================
---
--- ISSUE: Records missing from consolidated view
--- SOLUTION: 
---   1. Check if records exist in raw_cdc_test_no_key
---   2. Verify records not in raw_cdc_test_no_key_DELETES
---   3. Check _LDTS values and temporal logic in view
---
--- ISSUE: Duplicate records in consolidated view
--- SOLUTION:
---   1. Run Test 6.1 to identify duplicates
---   2. Check for duplicate entries with different _LDTS
---   3. Verify LEAD() window function logic
---
--- ISSUE: Deleted records still appearing
--- SOLUTION:
---   1. Verify record exists in raw_cdc_test_no_key_DELETES
---   2. Check _LDTS of delete vs insert
---   3. Ensure view logic correctly filters deleted records
---
--- ISSUE: Performance degradation over time
--- SOLUTION:
---   1. Analyze query profile for CONSOLIDATED view
---   2. Check size of raw_cdc tables (may need archival)
---   3. Consider adding clustering keys
---   4. Materialize view if needed
---
--- =====================================================================================
--- CONTACT & SUPPORT
--- =====================================================================================
--- For questions or issues with this CDC pattern, contact:
--- • Data Engineering Team: data-eng@company.com
--- • Documentation: https://wiki.company.com/cdc-patterns
--- • Slack: #data-engineering-support
---
--- Last Updated: 2025-10-24
--- Version: 1.0
--- =====================================================================================
+ =====================================================================================
+ PRODUCTION DEPLOYMENT GUIDE
+ =====================================================================================
+ 
+ ARCHITECTURE SUMMARY:
+ ┌─────────────────────────────────────────────────────────────────────────────────┐
+ │                                                                                 │
+ │  ┌─────────────────────┐                                                       │
+ │  │  DATA SHARE SOURCE  │                                                       │
+ │  │ ACCOUNT_BASIC_VIEW  │ (Secured View from External Data Share)              │
+ │  └──────────┬──────────┘                                                       │
+ │             │                                                                   │
+ │             ▼ MINUS Comparison (Incremental Refresh)                           │
+ │             │                                                                   │
+ │  ┌──────────┴──────────────────────────────────────────────┐                  │
+ │  │                                                           │                  │
+ │  ▼                                                           ▼                  │
+ │  ┌───────────────────────────┐           ┌─────────────────────────────┐      │
+ │  │  raw_cdc_test_no_key      │           │ raw_cdc_test_no_key_DELETES │      │
+ │  │  (Inserts & Updates)      │           │    (Physical Deletes)       │      │
+ │  │  + _LDTS timestamp        │           │    + _LDTS timestamp        │      │
+ │  └─────────────┬─────────────┘           └──────────────┬──────────────┘      │
+ │                │                                         │                     │
+ │                └─────────────────┬───────────────────────┘                     │
+ │                                  │                                             │
+ │                                  ▼ UNION ALL + MD5 Hashing                     │
+ │                                  │                                             │
+ │                  ┌───────────────────────────────────────┐                    │
+ │                  │  raw_cdc_test_no_key_CURRENT_VIEW     │                    │
+ │                  │           (VIEW)                       │                    │
+ │                  │  - Combines both tables                │                    │
+ │                  │  - Uses LEAD() for temporal logic      │                    │
+ │                  │  - Shows only current active records   │                    │
+ │                  └───────────────┬───────────────────────┘                    │
+ │                                  │                                             │
+ │                                  ▼                                             │
+ │                          ┌───────────────┐                                     │
+ │                          │  CONSUMERS    │                                     │
+ │                          │  (BI Tools,   │                                     │
+ │                          │   Analytics)  │                                     │
+ │                          └───────────────┘                                     │
+ │                                                                                 │
+ └─────────────────────────────────────────────────────────────────────────────────┘
+
+ =====================================================================================
+ PRODUCTION RECOMMENDATIONS
+ =====================================================================================
+
+ 1. AUTOMATION - Create Stored Procedure:
+    Wrap the incremental refresh logic (Step 3) into a stored procedure:
+
+    CREATE OR REPLACE PROCEDURE sp_refresh_account_cdc()
+    RETURNS STRING
+    LANGUAGE SQL
+    AS
+    $$
+    BEGIN
+         Insert new/updated records
+        INSERT INTO raw_cdc_test_no_key
+            SELECT *, CURRENT_TIMESTAMP AS _LDTS FROM ACCOUNT_BASIC_VIEW
+            MINUS
+            SELECT * EXCLUDE (_LDTS), CURRENT_TIMESTAMP AS _LDTS 
+            FROM raw_cdc_test_no_key_CURRENT_VIEW;
+        
+         Capture deletes
+        INSERT INTO raw_cdc_test_no_key_DELETES
+            SELECT * EXCLUDE (_LDTS), CURRENT_TIMESTAMP AS _LDTS 
+            FROM raw_cdc_test_no_key_CURRENT_VIEW
+            MINUS
+            SELECT *, CURRENT_TIMESTAMP AS _LDTS FROM ACCOUNT_BASIC_VIEW;
+        
+        RETURN 'CDC refresh completed successfully';
+    END;
+    $$;
+
+ 2. SCHEDULING - Create Snowflake Task:
+    Schedule the procedure to run at regular intervals:
+
+    CREATE OR REPLACE TASK task_refresh_account_cdc
+    WAREHOUSE = DEFAULT_WH
+    SCHEDULE = 'USING CRON 0 */1 * * * Europe/London'  -- Every hour
+    AS
+    CALL sp_refresh_account_cdc();
+
+    ALTER TASK task_refresh_account_cdc RESUME;
+
+ 3. MONITORING - Add Observability:
+    • Create audit table to track refresh metrics:
+      - Refresh start/end timestamps
+      - Records inserted/updated/deleted
+      - Execution duration
+      - Error messages
+    • Set up alerts for:
+      - Task failures
+      - Unexpected data volume changes
+      - Long-running refreshes
+
+ 4. ERROR HANDLING:
+    • Add TRY-CATCH blocks in stored procedure
+    • Implement retry logic for transient failures
+    • Log errors to audit table
+    • Send notifications on critical failures
+
+ 5. PERFORMANCE OPTIMIZATION:
+    • For large datasets (millions of rows), consider:
+      - Clustering keys on raw_cdc tables (if access patterns support it)
+      - Materializing the CONSOLIDATED view as a table
+      - Partitioning by _LDTS for historical analysis
+      - Using STREAMS instead of MINUS if source supports it
+
+ 6. DATA RETENTION:
+    • Define retention policy for raw_cdc tables
+    • Archive historical versions to cold storage if needed
+    • Implement purge process for old _LDTS records
+    Example:
+      DELETE FROM raw_cdc_test_no_key 
+      WHERE _LDTS < DATEADD(day, -90, CURRENT_TIMESTAMP)
+      AND C_CUSTKEY NOT IN (
+          SELECT C_CUSTKEY FROM raw_cdc_test_no_key_CURRENT_VIEW
+      );
+
+ 7. DATA QUALITY:
+    • Schedule regular data quality checks
+    • Compare record counts: source vs consolidated
+    • Monitor for unexpected spikes in deletes
+    • Validate key business metrics remain consistent
+
+ 8. SECURITY:
+    • Grant appropriate permissions:
+      - Consumers: SELECT on raw_cdc_test_no_key_CURRENT_VIEW only
+      - ETL Role: INSERT on raw_cdc tables
+      - Admin: Full access for troubleshooting
+    • Enable row-level security if needed
+    • Audit access to sensitive data
+
+ 9. DISASTER RECOVERY:
+    • Regular backups of raw_cdc tables
+    • Document full refresh procedure
+    • Test recovery process quarterly
+    • Maintain runbook for common issues
+
+ 10. SCALABILITY CONSIDERATIONS:
+     • This pattern scales well to millions of records
+     • MINUS operator is efficient in Snowflake
+     • Consider micro-batch processing for extremely large datasets
+     • Monitor warehouse sizing and adjust as needed
+
+ =====================================================================================
+ TROUBLESHOOTING GUIDE
+ =====================================================================================
+
+ ISSUE: Records missing from consolidated view
+ SOLUTION: 
+   1. Check if records exist in raw_cdc_test_no_key
+   2. Verify records not in raw_cdc_test_no_key_DELETES
+   3. Check _LDTS values and temporal logic in view
+
+ ISSUE: Duplicate records in consolidated view
+ SOLUTION:
+   1. Run Test 6.1 to identify duplicates
+   2. Check for duplicate entries with different _LDTS
+   3. Verify LEAD() window function logic
+
+ ISSUE: Deleted records still appearing
+ SOLUTION:
+   1. Verify record exists in raw_cdc_test_no_key_DELETES
+   2. Check _LDTS of delete vs insert
+   3. Ensure view logic correctly filters deleted records
+
+ ISSUE: Performance degradation over time
+ SOLUTION:
+   1. Analyze query profile for CONSOLIDATED view
+   2. Check size of raw_cdc tables (may need archival)
+   3. Consider adding clustering keys
+   4. Materialize view if needed
+
+ =====================================================================================
+ CONTACT & SUPPORT
+ =====================================================================================
+ For questions or issues with this CDC pattern, contact:
+ • Data Engineering Team: data-eng@company.com
+ • Documentation: https://wiki.company.com/cdc-patterns
+ • Slack: #data-engineering-support
+
+ Last Updated: 2025-10-24
+ Version: 1.0
+ =====================================================================================
