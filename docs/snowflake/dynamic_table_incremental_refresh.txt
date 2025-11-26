@@ -3,7 +3,6 @@
  =====================================================================================
  Purpose: Materialize and incrementally refresh ACCOUNT_BASIC_VIEW from a data share
  Author: Data Engineering Team
- Database: DEMO_DB | Schema: TBL
  
  Pattern Overview:
    1. Source: ACCOUNT_BASIC_VIEW (secured view from data share)
@@ -16,33 +15,6 @@
    • Temporal Tracking: _LDTS column captures DML timestamp
    • Physical Deletes: Captured separately and handled in consolidated view
    • INSERT Only: Only changed records are processed (efficient for large datasets)
- =====================================================================================
-
- =====================================================================================
- Session Configuration
- =====================================================================================
- Configure output formats and timezone for consistency across runs
-ALTER SESSION SET   BINARY_OUTPUT_FORMAT = HEX
-                    DATE_OUTPUT_FORMAT = 'YYYY-MM-DD'
-                    JSON_INDENT = 2
-                    TIMESTAMP_DAY_IS_ALWAYS_24H = TRUE
-                    TIMESTAMP_LTZ_OUTPUT_FORMAT = 'YYYY-MM-DD HH24:MI:SS.FF3 TZHTZM'
-                    TIMESTAMP_NTZ_OUTPUT_FORMAT = 'YYYY-MM-DD HH24:MI:SS.FF3' 
-                    TIMESTAMP_OUTPUT_FORMAT     = 'YYYY-MM-DD HH24:MI:SS.FF3 TZHTZM' 
-                    TIMEZONE = 'Europe/London'
-                    TIME_OUTPUT_FORMAT = 'HH24:MI:SS.FF3'
-                    QUERY_TAG = 'TBL REGULAR WORK';
-
- =====================================================================================
- Environment Setup
- =====================================================================================
-USE ROLE DEVELOPER;
-USE WAREHOUSE DEFAULT_WH;
-USE DATABASE DEMO_DB;
-CREATE OR REPLACE TRANSIENT SCHEMA TBL;
-
-USE SCHEMA DEMO_DB.TBL;
-
  =====================================================================================
  Step 1: Source Table Setup
  =====================================================================================
@@ -145,8 +117,6 @@ SELECT
 FROM 
     CTE_FINAL 
 ;
-
-
 
  =====================================================================================
  Step 3: Incremental Refresh - Capture Changes
