@@ -13,7 +13,7 @@ If you copy data from your stream to a table, then data is automatically removed
 ##### Stream to capture INSERT, UPDATE, DELETE
 
 ```sql
-CREATE OR REPLACE STREAM DEV_POC.RJ.COMPLETE_STR ON TABLE COMPLETE APPEND_ONLY = FALSE;
+CREATE OR REPLACE STREAM <my_stream_name> ON TABLE <my_table_name> APPEND_ONLY = FALSE;
 ```
 
 ##### Stream to capture INSERT Only
@@ -21,7 +21,11 @@ CREATE OR REPLACE STREAM DEV_POC.RJ.COMPLETE_STR ON TABLE COMPLETE APPEND_ONLY =
 Updates which usually show as a deletion followed by an insertion will not be shown
 
 ```sql
-CREATE OR REPLACE STREAM DEV_POC.RJ.COMPLETE_STR ON TABLE COMPLETE APPEND_ONLY = TRUE;
+CREATE OR REPLACE STREAM <my_stream_name> ON TABLE <my_table_name> APPEND_ONLY = TRUE;
 ```
 
 Streams will become stale if they are not used within the retention period
+
+#### Clearing a Stream
+
+It is not possible to programmatically clear a Stream. It is best to drop and recreate it.
