@@ -302,69 +302,6 @@ AS
   INSERT INTO target_table
   SELECT * FROM my_stream;
 ```
-
-### Trigger Stored Procedure When Data Becomes Available in a View
-
-This is a common pattern for event-driven processing:
-
-```sql
--- Step 1: Create a view that identifies when new data is available
-CREATE OR REPLACE VIEW new_data_available AS
-SELECT 
-  count(*) as pending_count,
-  max(created_at) as latest_record
-FROM staging_table
-WHERE processed = FALSE;
-
--- Step 2: Create the stored procedure to process the data
-CREATE OR REPLACE PROCEDURE process_pending_data()
-RETURNS STRING
-LANGUAGE SQL
-AS
-$$
-BEGIN
-  -- Process the pending records
-  INSERT INTO processed_table
-  SELECT * FROM staging_table WHERE processed = FALSE;
-  
-  -- Mark records as processed
-  UPDATE staging_table 
-  SET processed = TRUE 
-  WHERE processed = FALSE;
-  
-  RETURN 'Processing completed';
-END;
-$$;
-
--- Step 3: Create task that checks the view and triggers the procedure
-CREATE OR REPLACE TASK check_and_process_data
-  WAREHOUSE = processing_wh
-  SCHEDULE = '10 MINUTE'
-  WHEN
-    -- Only run if there are pending records
-    (SELECT pending_count FROM new_data_available) > 0
-AS
-  CALL process_pending_data();
-
--- Start the task
-ALTER TASK check_and_process_data RESUME;
-```
-
-### Advanced Conditional Logic with Multiple Conditions
-
-```sql
-CREATE TASK smart_processing
-  WAREHOUSE = compute_wh
-  SCHEDULE = '15 MINUTE'
-  WHEN
-    -- Multiple conditions
-    (SELECT count(*) FROM staging_table WHERE processed = FALSE) > 100
-    AND
-    (SELECT current_time()::TIME BETWEEN '06:00'::TIME AND '22:00'::TIME)
-AS
-  CALL batch_process_records(100);
-```
-
 ### Stream-Based Conditional Execution
 
 ```sql
