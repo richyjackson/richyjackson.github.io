@@ -37,7 +37,5 @@ MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE;
 ### Additional settings are:
 
 ```sql
-error_on_column_count_mismatch -- Can't be used with skip_header
-parse_header = TRUE; -- This will try to match column names in the source to the output
 strip_outer_array = TRUE -- Used for JSON cleaning up any outer square brackets
 ```
