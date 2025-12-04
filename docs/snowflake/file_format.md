@@ -17,6 +17,23 @@ create file format CSV_COMMA_LF_HEADER
     skip_header = 1 
 ;
 ```
+#### Loading by column header
+
+```sql
+CREATE OR REPLACE FILE FORMAT CSV_PIPE_HEADER
+	FIELD_DELIMITER = '|'
+	FIELD_OPTIONALLY_ENCLOSED_BY = '\"'
+	NULL_IF = ('N/A', '')
+	ENCODING = 'WINDOWS-1252'
+    PARSE_HEADER = TRUE
+    ERROR_ON_COLUMN_COUNT_MISMATCH = TRUE;
+
+COPY INTO <my_table>
+FROM '<stage_path>'
+FILE_FORMAT = (FORMAT_NAME = 'CSV_PIPE_HEADER')
+MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE;
+```
+
 ### Additional settings are:
 
 ```sql
