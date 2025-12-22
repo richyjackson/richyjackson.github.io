@@ -1,18 +1,13 @@
-# Snowflake Sequences Guide
+## Snowflake Sequences Guide
 - Sequences in Snowflake are schema-level objects that generate unique numeric values.
 - They provide a reliable way to create auto-incrementing values that are guaranteed to be unique across concurrent sessions.
-## Creating Sequences
-
 ### Basic Syntax
-
 ```sql
 CREATE SEQUENCE sequence_name
   START = 1
   INCREMENT = 1;
 ```
-
 ### Full Syntax with All Options
-
 ```sql
 CREATE OR REPLACE SEQUENCE sequence_name
   START WITH = 1000
@@ -23,9 +18,7 @@ CREATE OR REPLACE SEQUENCE sequence_name
   ORDER = TRUE
   COMMENT = 'Description of the sequence';
 ```
-
 ### Parameter Details
-
 |Parameter     |Description                              |
 |--------------|-----------------------------------------|
 |`START WITH`  |Initial value                            |
@@ -34,18 +27,14 @@ CREATE OR REPLACE SEQUENCE sequence_name
 |`MAXVALUE`    |Maximum value                            |
 |`CYCLE`       |Whether to restart after reaching max/min|
 |`ORDER`       |Guarantees values are generated in order |
-
 ### Descending sequence: ###
-
 ```sql
 CREATE SEQUENCE countdown_seq
   START WITH = 1000
   INCREMENT BY = -1
   MINVALUE = 1;
 ```
-
 ### Cycling sequence: ###
-
 ```sql
 CREATE SEQUENCE ticket_number_seq
   START = 1
@@ -125,25 +114,11 @@ CREATE TABLE order_items (
   PRIMARY KEY (order_id, item_sequence)
 );
 ```
-### Permission Issues
-
-**Problem**: Insufficient privileges
-
-```
-SQL access control error: Insufficient privileges to operate on sequence ```
-
-**Solution**: Grant appropriate privileges:
-
+### Configuring Permission
 ```sql
--- Grant usage to role
 GRANT USAGE ON SEQUENCE customer_id_seq TO ROLE analyst_role;
 
--- Grant ownership
-GRANT OWNERSHIP ON SEQUENCE customer_id_seq TO ROLE admin_role; ```
-
-## Additional Resources
-
-- [Snowflake Documentation - Sequences](https://gbr01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fdocs.snowflake.com%2Fen%2Fsql-reference%2Fsql%2Fcreate-sequence&data=05%7C02%7Crichard.jackson%40trinitybridge.com%7C89f257569e4b45e6182508de4135a8e4%7Cda5c8ad4f11b40c497f8ab680d87f144%7C0%7C0%7C639019895891244451%7CUnknown%7CTWFpbGZsb3d8eyJFbXB0eU1hcGkiOnRydWUsIlYiOiIwLjAuMDAwMCIsIlAiOiJXaW4zMiIsIkFOIjoiTWFpbCIsIldUIjoyfQ%3D%3D%7C0%7C%7C%7C&sdata=97MCMuX5YVT4iRz5MxmZ9phCbIPvsPy9LQ4pOBIPmks%3D&reserved=0)
-
-**Last Updated**: December 2025
-**Snowflake Version**: Compatible with all current versions
+GRANT OWNERSHIP ON SEQUENCE customer_id_seq TO ROLE admin_role;
+```
+### Snowflake Docs
+[Sequences](https://gbr01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fdocs.snowflake.com%2Fen%2Fsql-reference%2Fsql%2Fcreate-sequence&data=05%7C02%7Crichard.jackson%40trinitybridge.com%7C89f257569e4b45e6182508de4135a8e4%7Cda5c8ad4f11b40c497f8ab680d87f144%7C0%7C0%7C639019895891244451%7CUnknown%7CTWFpbGZsb3d8eyJFbXB0eU1hcGkiOnRydWUsIlYiOiIwLjAuMDAwMCIsIlAiOiJXaW4zMiIsIkFOIjoiTWFpbCIsIldUIjoyfQ%3D%3D%7C0%7C%7C%7C&sdata=97MCMuX5YVT4iRz5MxmZ9phCbIPvsPy9LQ4pOBIPmks%3D&reserved=0)
