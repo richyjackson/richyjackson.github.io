@@ -62,3 +62,11 @@ FROM '<@stage>'
 PATTERN = '<file_prefix>([A-Za-z0-9])*_[0-9]{14}.csv'
 FILE_FORMAT = (FORMAT_NAME = '<format_name>');
 ```
+#### Exporting data to a file
+```SQL
+COPY INTO '<stage_file_name_and_extention>' 
+FROM <table_or_view_name>
+FILE_FORMAT = (FORMAT_NAME = '<format_name>' COMPRESSION = NONE)
+SINGLE = TRUE
+OVERWRITE = TRUE;
+```
