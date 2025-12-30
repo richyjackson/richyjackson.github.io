@@ -99,23 +99,25 @@ This returns information including:
 
 ### Query Account Usage for Historical Data
 
-For longer-term historical analysis:
+For longer-term historical analysis which includes checks for new data:
 
 ```sql
 SELECT 
-    name,
-    database_name,
-    schema_name,
-    scheduling_state,
-    target_lag,
-    data_timestamp,
-    refresh_start_time,
-    refresh_end_time,
-    state as refresh_state
+    DATABASE_NAME,
+    SCHEMA_NAME,
+    NAME,
+    STATE,
+    STATE_MESSAGE,
+    DATA_TIMESTAMP,
+    REFRESH_START_TIME,
+    REFRESH_END_TIME,
+    COMPLETION_TARGET,
+    REFRESH_TRIGGER,
+    TARGET_LAG_SEC
 FROM SNOWFLAKE.ACCOUNT_USAGE.DYNAMIC_TABLE_REFRESH_HISTORY
-WHERE name = 'MY_DYNAMIC_TABLE'
-ORDER BY refresh_start_time DESC
-LIMIT 100;
+WHERE NAME = 'PARTY' AND SCHEMA_NAME = 'STAGING_SWP'
+ORDER BY DATA_TIMESTAMP DESC
+LIMIT 50;
 ```
 
 ### Get Current State of All Dynamic Tables
