@@ -1,6 +1,11 @@
-# Snowflake Materialized Views Cheat Sheet
+# Materialized Views
+- Always up to date. Other processes will pause until a refresh occurs
+- Use for **frequently queried, stable data**
+- Avoid on tables with **high update frequency**
+- Combine with **clustering keys** for large datasets
+- Cannot include `DISTINCT`, `GROUP BY`, or non-deterministic functions
+- Cannot reference other materialized views
 
-## Key Commands
 ### Create a Materialized View
 ```sql
 CREATE MATERIALIZED VIEW view_name AS
@@ -17,30 +22,4 @@ DROP MATERIALIZED VIEW view_name;
 ### Show Materialized Views
 ```sql
 SHOW MATERIALIZED VIEWS;
-```
-
----
-
-## Limitations
-- Cannot include `DISTINCT`, `GROUP BY`, or non-deterministic functions.
-- Cannot reference other materialized views.
-- Consumes storage and incurs refresh costs.
-
----
-
-## Best Practices
-- Use for **frequently queried, stable data**.
-- Avoid on tables with **high update frequency**.
-- Monitor **storage and refresh costs**.
-- Combine with **clustering keys** for large datasets.
-
----
-
-## Quick Example
-```sql
-CREATE MATERIALIZED VIEW sales_mv AS
-SELECT region, SUM(amount) AS total_sales
-FROM sales
-WHERE sale_date >= CURRENT_DATE - INTERVAL '30 days'
-GROUP BY region;
 ```
