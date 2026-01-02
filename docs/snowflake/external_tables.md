@@ -14,7 +14,7 @@ CREATE OR REPLACE EXTERNAL TABLE sales_external
   price DECIMAL(10,2) AS (value:c5::DECIMAL(10,2)),
   order_date DATE AS (value:c6::DATE)
 )
-WITH LOCATION = @s3_sales_stage
+WITH LOCATION = @database.schema.stage/folder/
 PATTERN = '.*sales.csv'
 FILE_FORMAT = csv_format
 AUTO_REFRESH = TRUE
