@@ -9,7 +9,8 @@ title: Snowflake
 - Dynamic tables automatic check for data changes to underlying tables, populating data as required
 - They can be a compositon of multiple tables
 - They wont work against Shared View Objects as you require permission to the underlying tables
-- If the underlying tables is dropped and recreated, the refresh will fail and you will need to recreate the dynamic  tables
+- If the underlying tables is dropped and recreated, the refresh will fail and you will need to recreate the dynamic tables
+- You cannot time a dynamic table to refresh at a particular time
 
 ```sql
 CREATE OR REPLACE DYNAMIC TABLE ANALYSIS_DTBL
