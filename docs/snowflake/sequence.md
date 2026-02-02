@@ -10,18 +10,17 @@ CREATE SEQUENCE sequence_name
 ### Full Syntax with All Options
 ```sql
 CREATE OR REPLACE SEQUENCE sequence_name
-  START WITH = 1000
+  START = 1000
   INCREMENT BY = 1
   MINVALUE = 1
   MAXVALUE = 999999999
   CYCLE = FALSE
-  ORDER = TRUE
   COMMENT = 'Description of the sequence';
 ```
 ### Parameter Details
 |Parameter     |Description                              |
 |--------------|-----------------------------------------|
-|`START WITH`  |Initial value                            |
+|`START`       |Initial value                            |
 |`INCREMENT BY`|Step size (can be negative)              |
 |`MINVALUE`    |Minimum value                            |
 |`MAXVALUE`    |Maximum value                            |
