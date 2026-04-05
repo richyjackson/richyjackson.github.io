@@ -12,6 +12,8 @@
 |Permanent|1 Day|90 Days|
 |Temporary|1 Day|1 Day|
 |Transient|1 Day|1 Day|
+|Dynamic (permanent)|1 Day|90 Days|
+|Dynamic (transient)|1 Day|1 Day|
 - Use DATA_RETENTION_TIME_IN_DAYS for individual objects
 - Use MIN_DATA_RETENTION_IN_DAYS for account, database, schema or table level settings
 - Child objects inherit parent settings
