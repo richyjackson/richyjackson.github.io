@@ -1,3 +1,10 @@
+## Contents
+- [Time Travel](#time-travel)
+   - [Retention Period](#retention-period)
+   - [Querying](#querying)
+   - [Limitations](#limitations)
+   - [Effect On Streams](#effect-on-streams)
+ - [Fail Safe](#fail_safe)
 ## Time Travel
 - Access historical, changed or deleted data within a retention period
 - Applies to a database, schema or table
@@ -20,7 +27,7 @@
 - Child objects inherit parent settings
 - Historical data counts towards storage billing
 - Clones inherit the sources clone history at billing
-### Querying Historical Data
+### Querying
 **Use the AT or BEFORE clause**
 ```sql
 -- By timestamp
