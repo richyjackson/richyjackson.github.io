@@ -1,7 +1,7 @@
 ## Time Travel
 - Access historical, changed or deleted data within a retention period
 - Applies to a database, schema or table
-- For undoing mistakes, recovering tables, auditing changes or point in time analysis
+- For undoing mistakes, recovering objects, auditing changes or point in time analysis
 
 ### Retention Period
 ```
