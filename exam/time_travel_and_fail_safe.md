@@ -37,6 +37,12 @@ UNDROP DATABASE my_database;
 -- Recreate from a historical snapshot or restore table
 CREATE OR REPLACE TABLE my_table AS
   SELECT * FROM my_table BEFORE (STATEMENT => '<query_id>');
+
+-- See the time travel policy
+SHOW TABLES;
+SHOW SCHEMAS;
+SHOW DATABASES;
+SHOW STREAMS;
 ```
 ### Limitations
 - External tables
