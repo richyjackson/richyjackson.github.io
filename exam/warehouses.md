@@ -3,7 +3,8 @@
 - [Warehouse size](#warehouse-size)
 - [Multi-cluster warehouses](#multi-cluster-warehouses)
 - [Warehouse modes](#warehouse-modes)
-- 
+   - [Maximised](#1-maximised)
+   - [Auto-scale](#2-auto-scale)
 ## Warehouses
 > Warehouses are compute resources. They can be switched on or off, scaled up or out and clustered at any time
 
