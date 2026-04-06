@@ -26,3 +26,18 @@
 |Credit cost|Higher than standard at equivalent size           |
 
 ## Warehouse Size
+- Credit useage doubles as you increase warehouse size
+- The default size is XS when created using CREATE WAREHOUSE, XL when using Snowsight UI
+
+| Size | Credits per Hour | Credits per Second |
+|---|---|---|
+| XS | 1 | 0.000278 |
+| S | 2 | 0.000556 |
+| M | 4 | 0.001111 |
+| L | 8 | 0.002222 |
+| XL | 16 | 0.004444 |
+| 2XL | 32 | 0.008889 |
+| 3XL | 64 | 0.017778 |
+| 4XL | 128 | 0.035556 |
+| 5XL | 256 | 0.071111 |
+| 6XL | 512 | 0.142222 |
