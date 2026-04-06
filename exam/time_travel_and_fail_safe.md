@@ -24,6 +24,7 @@
 |External|0 Days|0 Days|
 - Use DATA_RETENTION_TIME_IN_DAYS for individual objects
 - Use MIN_DATA_RETENTION_IN_DAYS for account, database, schema or table level settings
+- Whichever is higher wins
 - Child objects inherit parent settings
 - Historical data counts towards storage billing
 - Clones inherit the sources clone history at billing
