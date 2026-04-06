@@ -95,6 +95,6 @@ The warehouse increases and decreases automatically according to workload for wh
 > Warehouses with a policy assigned have no affect if they are on maximised mode
 ## Auto-suspend
 Warehouses charge while active and not in use with a minimum billing policy of 60 seconds
-- Initially set auto-suspend after inactivity to a minimum of 5–10 minutes. Setting it lower risks the warehouse repeatedly suspending and resuming, whic.​​​
+- Initially set auto-suspend after inactivity to a minimum of 5–10 minutes. Setting it lower risks the warehouse repeatedly suspending and resuming, which can be more expensive given the minimum billing period
 - Queries are cached all the time a warehouse is available. This is cleared when the warehouse suspends
 
