@@ -80,7 +80,7 @@ Warehouse size is primarily intended for improving query performance
 There are two warehouse modes:
 #### 1. Maximised
 The warehouse is always on within the configured parameters (> 1)
-#### 2. Auto-scale
+#### 2. Auto-scale (recommended)
 The warehouse increases and decreases automatically according to workload for which there are two **policies**
    - **Standard (default)**<br>
    Priority: Minimise queuing, favour performance over cost
@@ -97,4 +97,7 @@ The warehouse increases and decreases automatically according to workload for wh
 Warehouses charge while active and not in use with a minimum billing policy of 60 seconds
 - Initially set auto-suspend after inactivity to a minimum of 5–10 minutes. Setting it lower risks the warehouse repeatedly suspending and resuming, which can be more expensive given the minimum billing period
 - Queries are cached all the time a warehouse is available. This is cleared when the warehouse suspends
+- Disabling auto-suspend may be beneficial for continual heavy workloads or where responsiveness is required
+## Auto-resume
+- When set the warehouse automatically resumes as soon as the query comes in
 
