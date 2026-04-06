@@ -3,7 +3,9 @@
 - [Warehouse size](#warehouse-size)
 - [Multi-cluster warehouses](#multi-cluster-warehouses)
 ## Warehouses
-> Warehouses are compute resources. They can be switched on or off, scaled up or out and clustered at any time <br><br>
+> Warehouses are compute resources. They can be switched on or off, scaled up or out and clustered at any time
+
+
 > They are best organised according to workload
 
 ## Types
@@ -48,11 +50,13 @@ Warehouse size is primarily intended for improving query performance
 | 5XL | 256 | 0.071111 |
 | 6XL | 512 | 0.142222 |
 
-> Large warehouses do not improve perforance for data loading. Files are loaded consequtively and performance is affected by the number and size of files
+> Large warehouses do not improve data loading performance. As files are loaded consequtively, performance is affected by the number and size of files
 ### Multi-cluster Warehouses
 
-> Multi-cluster warehouses are Standard Warehouses with multiple instances. Each query is assigned compute resource. Once this has been exhausted items are then queued. By adding clusters you avoid queueing
-- Each warehouse has a default of 10 clusters which can be overrided to the maxium allowable for the warehouse size
+> Multi-cluster warehouses are Standard Warehouses with multiple instances. Each query is assigned compute resource. Once this has been exhausted items are then queued. By adding clusters you avoid queueing<br>
+
+
+>Each warehouse has a default of 10 clusters which can be overrided to the maxium allowable for the warehouse size<br>
 
 | Size | Max Clusters |
 |---|---|
