@@ -88,13 +88,13 @@ There are two warehouse modes:
 The warehouse is always on within the configured parameters (> 1)
 #### 2. Auto-scale (recommended)
 The warehouse increases and decreases automatically according to workload for which there are two **policies**
-   - **Standard (default)**<br><br>
-   Priority: Minimise queuing, favour performance over cost
+   - **Standard (default)**<br>
+   Priority: Minimise queuing, favour performance over cost<br>
       - A new cluster starts as soon as a query is queued or Snowflake detects existing clusters can’t handle incoming queries
       - An idle cluster shuts down after a sustained period of low load
       - Reacts quickly — spins up clusters aggressively
-   - **Economy**<br><br>
-   Priority: Conserve credits, favour cost over performance
+   - **Economy**<br>
+   Priority: Conserve credits, favour cost over performance<br>
       - A new cluster only starts if Snowflake estimates there is at least 6 minutes of work to justify it
       - An idle cluster shuts down if Snowflake estimates it has less than 6 minutes of work remaining
       - More tolerant of short queuing — won’t spin up a cluster for a brief spike
