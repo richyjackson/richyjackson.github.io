@@ -4,9 +4,10 @@
 - [Multi-cluster warehouses](#multi-cluster-warehouses)
 - [Warehouse modes](#warehouse-modes)
    - [Maximised](#1-maximised)
-   - [Auto-scale](#2-auto-scale)
+   - [Auto-scale](#2-auto-scale-recommended)
 - [Auto-suspend](#auto-suspend)
 - [Create](#create)
+
 ## Warehouses
 > Warehouses are compute resources. They can be switched on or off, scaled up or out and clustered at any time
 
@@ -23,6 +24,10 @@
 - Supports multi-cluster & auto-scale on Enterprise+
    - Scaling up (increasing size) solves slow queries
    - Scaling out (adding more clusters) solves queuing
+- Gen 2 warehouses are optimised for DML operations and loading
+   - 2.1x faster for core analytics workloads and complex queries
+   - Improved conceurrency and cost efficiency
+   - Supports up to 4XL (Gen 1 6XL)
 
 ### 2. Snowpark-Optimised Warehouse
 - Designed specifically for Snowpark workloads (Python, Java, or Scala)
@@ -32,8 +37,8 @@
 |-----------|--------------------------------------------------|
 |Memory     |~16x more memory per node than standard           |
 |Use case   |ML model training, large Snowpark DataFrames, UDFs|
-|Size       |Recommended M or larger                           |
-|Credit cost|Higher than standard at equivalent size           |
+|Size       |Smallest is M, max is 6XL                        |
+|Credit cost|1.5x times of Standard (Gen 1)           |
 
 ## Warehouse Size
 Warehouse size is primarily intended for improving query performance
@@ -105,5 +110,6 @@ Warehouses charge while active and not in use with a minimum billing policy of 6
 ```sql
 CREATE WAREHOUSE IF NOT EXISTS my_warehouse
    WAREHOUSE_SIZE = Small
-   AUTO_SUSPEND = 10;
+   AUTO_SUSPEND = 10
+   AUTO_RESUME = TRUE;
 ```
