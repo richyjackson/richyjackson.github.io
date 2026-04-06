@@ -8,7 +8,8 @@
 - Billed per second, 60-second minimum on resume
 - Supports auto-suspend and auto-resume
 - Supports multi-cluster & auto-scale on Enterprise+
-- Scaling up (bigger size) solves slow queries; scaling out (more clusters) solves queuing
+   - Scaling up (increasing size) solves slow queries
+   - Scaling out (adding more clusters) solves queuing
 
 ### 2. Snowpark-Optimised Warehouse
 - Designed specifically for Snowpark workloads (Python, Java, or Scala)
