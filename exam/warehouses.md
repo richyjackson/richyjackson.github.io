@@ -1,5 +1,7 @@
 ## Contents
 - [Types](#types)
+- [Warehouse size](#warehouse-size)
+- [Multi-cluster warehouses](#multi-cluster-warehouses)
 ## Warehouses
 > Warehouses are compute resources. They can be switched on or off, scaled up or out and clustered at any time <br><br>
 > They are best organised according to workload
@@ -26,10 +28,12 @@
 |Credit cost|Higher than standard at equivalent size           |
 
 ## Warehouse Size
+Warehouse size is primarily intended for improving query performance
 - Credit useage doubles as you increase warehouse size
 - The default size is XS when created using CREATE WAREHOUSE, XL when using Snowsight UI
 - Warehouses charge per second with a minimum of 60 seconds
 - Cost is multiplied per cluster
+- Larger is not quicker for basic queries, use larger warehouses for complex workloads
 
 | Size | Credits per Hour | Credits per Second |
 |---|---|---|
@@ -44,4 +48,27 @@
 | 5XL | 256 | 0.071111 |
 | 6XL | 512 | 0.142222 |
 
-> Data loading speed does not increase with size as files are loaded consecutively and are influenced by the number and size of files
+> Large warehouses do not improve perforance for data loading. Files are loaded consequtively and performance is affected by the number and size of files
+### Multi-cluster Warehouses
+
+> Multi-cluster warehouses are Standard Warehouses with multiple instances. Each query is assigned compute resource. Once this has been exhausted items are then queued. By adding clusters you avoid queueing
+- Each warehouse has a default of 10 clusters which can be overrided to the maxium allowable for the warehouse size
+
+| Size | Max Clusters |
+|---|---|
+| XS | 300 |
+| S | 300 |
+| M | 300 |
+| L | 160 |
+| XL | 80 |
+| 2XL | 40 |
+| 3XL | 20 |
+| 4XL | 10 |
+| 5XL | 10 |
+| 6XL | 10 |
+
+
+
+
+
+
