@@ -28,6 +28,8 @@
 ## Warehouse Size
 - Credit useage doubles as you increase warehouse size
 - The default size is XS when created using CREATE WAREHOUSE, XL when using Snowsight UI
+- Warehouses charge per second with a minimum of 60 seconds
+- Cost is multiplied per cluster
 
 | Size | Credits per Hour | Credits per Second |
 |---|---|---|
@@ -41,3 +43,5 @@
 | 4XL | 128 | 0.035556 |
 | 5XL | 256 | 0.071111 |
 | 6XL | 512 | 0.142222 |
+
+> Data loading speed does not increase with size as files are loaded consecutively and are influenced by the number and size of files
