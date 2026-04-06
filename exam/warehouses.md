@@ -6,6 +6,7 @@
    - [Maximised](#1-maximised)
    - [Auto-scale](#2-auto-scale)
 - [Auto-suspend](#auto-suspend)
+- [Create](#create)
 ## Warehouses
 > Warehouses are compute resources. They can be switched on or off, scaled up or out and clustered at any time
 
@@ -100,4 +101,9 @@ Warehouses charge while active and not in use with a minimum billing policy of 6
 - Disabling auto-suspend may be beneficial for continual heavy workloads or where responsiveness is required
 ## Auto-resume
 - When set the warehouse automatically resumes as soon as the query comes in
-
+## Create
+```sql
+CREATE WAREHOUSE IF NOT EXISTS my_warehouse
+   WAREHOUSE_SIZE = Small
+   AUTO_SUSPEND = 10;
+```
