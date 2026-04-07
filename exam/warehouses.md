@@ -37,11 +37,18 @@ Warehouse size is primarily intended for improving query performance
 - The default size is XS when created using CREATE WAREHOUSE, XL when using Snowsight UI
 - Warehouses charge per second with a minimum of 60 seconds
 - Cost is multiplied per cluster<br>
-### Larger warehouses
-- ✅ Yes - Complex workloads
-- ❌ No - Basic queries
-- ❌ No - Data loading (Performance influenced by number & size of files. Split to 250MB to improve performance)
-<br>
+
+### Larger Warehouses
+- ✅ Complex workloads
+- ❌ Basic queries
+- ❌ Data loading (Performance influenced by number & size of files. Split to 250MB to improve performance)
+
+### Multi-Cluster Warehouses
+Multi-cluster warehouses are Standard Warehouses with multiple instances. Each query is assigned compute resource. Once this has been exhausted items are then queued. By adding clusters you avoid queueing<br><br>
+Each warehouse has a default of 10 clusters which can be overridden to the maxium allowable for the warehouse size<br>
+
+----
+
 | Size | Standard Credits / Hour | Standard Credits / Second | Standard (Gen1)| Standard (Gen2) | Snowpark-Optimised | Standard Max Clusters |
 |---|---|---|---|---|---|---|
 | XS  | 1   | 0.000278 |✅ Yes|❌ No |❌ No |300|
@@ -54,11 +61,6 @@ Warehouse size is primarily intended for improving query performance
 | 4XL | 128 | 0.035556 |✅ Yes|✅ Yes|✅ Yes|10 |
 | 5XL | 256 | 0.071111 |✅ Yes|❌ No |✅ Yes|10 |
 | 6XL | 512 | 0.142222 |✅ Yes|❌ No |✅ Yes|10 |
-
-> Large warehouses do not improve data loading performance. As files are loaded consequtively, performance is affected by the number and size of files. Consider splitting files to 100-250 MB.
-### Multi-cluster Warehouses
-Multi-cluster warehouses are Standard Warehouses with multiple instances. Each query is assigned compute resource. Once this has been exhausted items are then queued. By adding clusters you avoid queueing<br><br>
-Each warehouse has a default of 10 clusters which can be overridden to the maxium allowable for the warehouse size<br>
 
 ### Warehouse modes
 There are two warehouse modes:
