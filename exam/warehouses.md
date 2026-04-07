@@ -9,10 +9,7 @@
 - [Create](#create)
 
 ## Warehouses
-> Warehouses are compute resources. They can be switched on or off, scaled up or out and clustered at any time
-
-
-> They are best organised according to workload
+Warehouses are compute resources. They can be switched on or off, scaled up or out and clustered at any time. They are best organised according to workload
 
 ## Types
 
