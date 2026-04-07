@@ -46,7 +46,7 @@ Warehouse size is primarily intended for improving query performance
 - The default size is XS when created using CREATE WAREHOUSE, XL when using Snowsight UI
 - Warehouses charge per second with a minimum of 60 seconds
 - Cost is multiplied per cluster
-- Larger is not quicker for basic queries, use larger warehouses for complex workloads
+> Larger is not quicker for basic queries, use larger warehouses for complex workloads
 
 | Size | Credits per Hour | Credits per Second |
 |---|---|---|
@@ -61,7 +61,7 @@ Warehouse size is primarily intended for improving query performance
 | 5XL | 256 | 0.071111 |
 | 6XL | 512 | 0.142222 |
 
-> Large warehouses do not improve data loading performance. As files are loaded consequtively, performance is affected by the number and size of files
+> Large warehouses do not improve data loading performance. As files are loaded consequtively, performance is affected by the number and size of files. Consider splitting files to 100-250 MB.
 ### Multi-cluster Warehouses
 
 > Multi-cluster warehouses are Standard Warehouses with multiple instances. Each query is assigned compute resource. Once this has been exhausted items are then queued. By adding clusters you avoid queueing<br>
@@ -113,3 +113,24 @@ CREATE WAREHOUSE IF NOT EXISTS my_warehouse
    AUTO_SUSPEND = 10
    AUTO_RESUME = TRUE;
 ```
+## Recommended settings
+# Snowflake Warehouse Type & Configuration by Use Case
+
+|Use Case|Warehouse Type|Recommended Size|Multi-Cluster|Scaling Policy|Auto-Suspend|Auto-Resume|Key Rationale|
+|---|---|---|---|---|---|---|---|
+|**Ad-hoc Queries**|Standard      |XS – M          |Optional     |Economy            |1–5 mins             |✅ Yes      |Unpredictable, sporadic load. Economy policy avoids premature scale-out. Auto-suspend is critical for cost control |
+|**Data Loading**  |Standard      |XS – S          |❌ No         |N/A                |Immediately after job|✅ Yes      |Parallelism comes from number of files, not warehouse size. Optimise file sizing (100–250 MB compressed) instead   |
+|**BI & Reporting**|Standard      |M – L           |✅ Yes        |Economy or Standard|5–10 mins            |✅ Yes      |Concurrent users drive load. Multi-cluster handles concurrency queuing. Larger size supports complex report queries|
+
+-----
+
+## Supporting Reference Table
+
+|Concept                           |Detail                                                                                                                     |
+|----------------------------------|---------------------------------------------------------------------------------------------------------------------------|
+|**Standard vs Snowpark-Optimised**|Standard suits all three use cases. Snowpark-Optimised is for ML/Python workloads needing high memory                      |
+|**Economy Scaling Policy**        |Waits longer before spinning up additional clusters — better for cost-sensitive workloads                                  |
+|**Standard Scaling Policy**       |Adds clusters faster — better when low latency matters more than cost                                                      |
+|**Data Loading — key insight**    |Larger warehouse does **not** meaningfully improve load speed. File count and size (100–250 MB) is the primary tuning lever|
+|**Multi-cluster**                 |Only available on Enterprise edition and above                                                                             |
+|**Auto-Suspend default**          |Snowflake default is 10 minutes — always tune down to control credit consumption                                           |
