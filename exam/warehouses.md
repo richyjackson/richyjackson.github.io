@@ -36,9 +36,12 @@ Warehouse size is primarily intended for improving query performance
 - Credit useage doubles as you increase warehouse size
 - The default size is XS when created using CREATE WAREHOUSE, XL when using Snowsight UI
 - Warehouses charge per second with a minimum of 60 seconds
-- Cost is multiplied per cluster
-> Larger is not quicker for basic queries, use larger warehouses for complex workloads
-
+- Cost is multiplied per cluster<br>
+### Larger warehouses
+- ✅ Yes - Complex workloads
+- ❌ No - Basic queries
+- ❌ No - Data loading (Performance influenced by number & size of files. Split to 250MB to improve performance)
+<br>
 | Size | Standard Credits / Hour | Standard Credits / Second | Standard (Gen1)| Standard (Gen2) | Snowpark-Optimised | Standard Max Clusters |
 |---|---|---|---|---|---|---|
 | XS  | 1   | 0.000278 |✅ Yes|❌ No |❌ No |300|
@@ -63,13 +66,11 @@ There are two warehouse modes:
 The warehouse is always on within the configured parameters (> 1)
 #### 2. Auto-scale (recommended)
 The warehouse increases and decreases automatically according to workload for which there are two **policies**
-   - **Standard (default)**<br>
-   Priority: Minimise queuing, favour performance over cost<br>
+   - **Standard (default)** - Minimise queuing, favour performance over cost<br>
       - A new cluster starts as soon as a query is queued or Snowflake detects existing clusters can’t handle incoming queries
       - An idle cluster shuts down after a sustained period of low load
       - Reacts quickly — spins up clusters aggressively
-   - **Economy**<br>
-   Priority: Favour cost over performance<br>
+   - **Economy**<br> - Favour cost over performance<br>
       - A new cluster only starts if Snowflake estimates there is at least 6 minutes of work to justify it
       - An idle cluster shuts down if Snowflake estimates it has less than 6 minutes of work remaining
       - More tolerant of short queuing — won’t spin up a cluster for a brief spike
@@ -98,14 +99,14 @@ CREATE WAREHOUSE IF NOT EXISTS my_warehouse
 |**Individual Teams**|Standard|XS – S|❌ No   |N/A     |1–5 mins |✅ Yes|Dedicated warehouse per team isolates resource contention and simplifies cost attribution. Small size sufficient for team-level workloads|
 |**High Concurrency**|Standard|M     |✅ Yes  |Standard|5–10 mins|✅ Yes|Multi-cluster is the primary lever — scale out over scale up. Standard policy adds clusters quickly to avoid query queuing under sudden load spikes|
 |**Complex Queries** |Standard|L – XL|❌ No   |N/A     |5–10 mins|✅ Yes|Large single queries benefit from more compute per node. Scale up (larger warehouse) rather than scale out. Consider query result caching and clustering keys to reduce repeated full scans|
-
+<br>
 -----
-
+<br>
 |Concept|Detail|
 |---|---|
 |**Standard vs Snowpark-Optimised**|Standard suits all three use cases. Snowpark-Optimised is for ML/Python workloads needing high memory|
-|**Economy Scaling Policy**        |Waits longer before spinning up additional clusters — better for cost-sensitive workloads|
-|**Standard Scaling Policy**       |Adds clusters faster — better when low latency matters more than cost|
-|**Data Loading — key insight**    |Larger warehouse does **not** meaningfully improve load speed. File count and size (100–250 MB) is the primary tuning lever|
+|**Economy scaling policy**        |Waits longer before spinning up additional clusters — better for cost-sensitive workloads|
+|**Standard scaling policy**       |Adds clusters faster — better when low latency matters more than cost|
+|**Data loading**|Larger warehouse does **not** meaningfully improve load speed. File count and size (100–250 MB) is the primary tuning lever|
 |**Multi-cluster**                 |Only available on Enterprise edition and above|
-|**Auto-Suspend default**          |Snowflake default is 10 minutes — always tune down to control credit consumption|
+|**Auto-suspend default**          |Snowflake default is 10 minutes — always tune down to control credit consumption|
