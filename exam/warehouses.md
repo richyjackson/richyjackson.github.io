@@ -14,7 +14,6 @@
 
 > They are best organised according to workload
 
-
 ## Types
 
 ### 1. Standard Warehouse (default)
@@ -26,19 +25,14 @@
    - Scaling out (adding more clusters) solves queuing
 - Gen 2 warehouses are optimised for DML operations and loading
    - 2.1x faster for core analytics workloads and complex queries
-   - Improved conceurrency and cost efficiency
-   - Supports up to 4XL (Gen 1 6XL)
+   - Improved concurrency and cost efficiency<br>
 
 ### 2. Snowpark-Optimised Warehouse
 - Designed specifically for Snowpark workloads (Python, Java, or Scala)
+- Good for ML model training, large Snowpark DataFrames, UDFs
 - Use for memory intensive workloads or when Snowpark jobs are splling to disk
-
-|Property   |Detail                                            |
-|-----------|--------------------------------------------------|
-|Memory     |~16x more memory per node than standard           |
-|Use case   |ML model training, large Snowpark DataFrames, UDFs|
-|Size       |Smallest is M, max is 6XL                        |
-|Credit cost|1.5x times of Standard (Gen 1)           |
+- Has 16x more memory per node than standard
+- Costs 1.5x times of Standard (Gen 1)
 
 ## Warehouse Size
 Warehouse size is primarily intended for improving query performance
@@ -48,36 +42,23 @@ Warehouse size is primarily intended for improving query performance
 - Cost is multiplied per cluster
 > Larger is not quicker for basic queries, use larger warehouses for complex workloads
 
-| Size | Credits per Hour | Credits per Second |
-|---|---|---|
-| XS | 1 | 0.000278 |
-| S | 2 | 0.000556 |
-| M | 4 | 0.001111 |
-| L | 8 | 0.002222 |
-| XL | 16 | 0.004444 |
-| 2XL | 32 | 0.008889 |
-| 3XL | 64 | 0.017778 |
-| 4XL | 128 | 0.035556 |
-| 5XL | 256 | 0.071111 |
-| 6XL | 512 | 0.142222 |
+| Size | Standard Credits / Hour | Standard Credits / Second | Standard (Gen1)| Standard (Gen2) | Snowpark-Optimised | Standard Max Clusters |
+|---|---|---|---|---|---|---|
+| XS  | 1   | 0.000278 |✅ Yes|❌ No |❌ No |300|
+| S   | 2   | 0.000556 |✅ Yes|❌ No |❌ No |300|
+| M   | 4   | 0.001111 |✅ Yes|✅ Yes|✅ Yes|300|
+| L   | 8   | 0.002222 |✅ Yes|✅ Yes|✅ Yes|160|
+| XL  | 16  | 0.004444 |✅ Yes|✅ Yes|✅ Yes|80 |
+| 2XL | 32  | 0.008889 |✅ Yes|✅ Yes|✅ Yes|40 |
+| 3XL | 64  | 0.017778 |✅ Yes|✅ Yes|✅ Yes|20 |
+| 4XL | 128 | 0.035556 |✅ Yes|✅ Yes|✅ Yes|10 |
+| 5XL | 256 | 0.071111 |✅ Yes|❌ No |✅ Yes|10 |
+| 6XL | 512 | 0.142222 |✅ Yes|❌ No |✅ Yes|10 |
 
 > Large warehouses do not improve data loading performance. As files are loaded consequtively, performance is affected by the number and size of files. Consider splitting files to 100-250 MB.
 ### Multi-cluster Warehouses
 Multi-cluster warehouses are Standard Warehouses with multiple instances. Each query is assigned compute resource. Once this has been exhausted items are then queued. By adding clusters you avoid queueing<br><br>
 Each warehouse has a default of 10 clusters which can be overrided to the maxium allowable for the warehouse size<br>
-
-| Size | Max Clusters |
-|---|---|
-| XS | 300 |
-| S | 300 |
-| M | 300 |
-| L | 160 |
-| XL | 80 |
-| 2XL | 40 |
-| 3XL | 20 |
-| 4XL | 10 |
-| 5XL | 10 |
-| 6XL | 10 |
 
 ### Warehouse modes
 There are two warehouse modes:
@@ -91,7 +72,7 @@ The warehouse increases and decreases automatically according to workload for wh
       - An idle cluster shuts down after a sustained period of low load
       - Reacts quickly — spins up clusters aggressively
    - **Economy**<br>
-   Priority: Conserve credits, favour cost over performance<br>
+   Priority: Favour cost over performance<br>
       - A new cluster only starts if Snowflake estimates there is at least 6 minutes of work to justify it
       - An idle cluster shuts down if Snowflake estimates it has less than 6 minutes of work remaining
       - More tolerant of short queuing — won’t spin up a cluster for a brief spike
@@ -113,7 +94,7 @@ CREATE WAREHOUSE IF NOT EXISTS my_warehouse
 ## Recommended settings
 # Snowflake Warehouse Type & Configuration by Use Case
 
-|Use Case|Warehouse Type|Size|Multi-Cluster|Scaling Policy|Auto-Suspend|Auto-Resume|Key Rationale|
+|Use Case|Warehouse Type|Warehouse Size|Multi-Cluster|Scaling Policy|Auto-Suspend|Auto-Resume|Key Rationale|
 |---|---|---|---|---|---|---|---|
 |**Ad-hoc Queries**  |Standard|XS – M|Optional|Economy |1–5 mins|✅ Yes|Unpredictable, sporadic load. Economy policy avoids premature scale-out. Auto-suspend is critical for cost control|
 |**Data Loading**    |Standard|XS – S|❌ No   |N/A     |Immediately after job|✅ Yes|Parallelism comes from number of files, not warehouse size. Optimise file sizing (100–250 MB compressed) instead|
