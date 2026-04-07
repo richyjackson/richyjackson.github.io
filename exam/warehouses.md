@@ -101,7 +101,6 @@ CREATE WAREHOUSE IF NOT EXISTS my_warehouse
 |**Complex Queries** |Standard|L – XL|❌ No   |N/A     |5–10 mins|✅ Yes|Large single queries benefit from more compute per node. Scale up (larger warehouse) rather than scale out. Consider query result caching and clustering keys to reduce repeated full scans|
 
 <br>
------
 <br>
 
 |Concept|Detail|
