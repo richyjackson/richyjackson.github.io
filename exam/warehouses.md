@@ -99,6 +99,7 @@ CREATE WAREHOUSE IF NOT EXISTS my_warehouse
 |**Individual Teams**|Standard|XS – S|❌ No   |N/A     |1–5 mins |✅ Yes|Dedicated warehouse per team isolates resource contention and simplifies cost attribution. Small size sufficient for team-level workloads|
 |**High Concurrency**|Standard|M     |✅ Yes  |Standard|5–10 mins|✅ Yes|Multi-cluster is the primary lever — scale out over scale up. Standard policy adds clusters quickly to avoid query queuing under sudden load spikes|
 |**Complex Queries** |Standard|L – XL|❌ No   |N/A     |5–10 mins|✅ Yes|Large single queries benefit from more compute per node. Scale up (larger warehouse) rather than scale out. Consider query result caching and clustering keys to reduce repeated full scans|
+
 <br>
 -----
 <br>
