@@ -7,6 +7,7 @@
    - [Auto-scale](#2-auto-scale-recommended)
 - [Auto-suspend](#auto-suspend)
 - [Create](#create)
+- [Recommended settings](#recommended-settings)
 
 ## Warehouses
 Warehouses are compute resources. They can be switched on or off, scaled up or out and clustered at any time. They are best organised according to workload
@@ -54,7 +55,7 @@ Warehouse size is primarily intended for improving query performance
 > Large warehouses do not improve data loading performance. As files are loaded consequtively, performance is affected by the number and size of files. Consider splitting files to 100-250 MB.
 ### Multi-cluster Warehouses
 Multi-cluster warehouses are Standard Warehouses with multiple instances. Each query is assigned compute resource. Once this has been exhausted items are then queued. By adding clusters you avoid queueing<br><br>
-Each warehouse has a default of 10 clusters which can be overrided to the maxium allowable for the warehouse size<br>
+Each warehouse has a default of 10 clusters which can be overridden to the maxium allowable for the warehouse size<br>
 
 ### Warehouse modes
 There are two warehouse modes:
@@ -88,7 +89,6 @@ CREATE WAREHOUSE IF NOT EXISTS my_warehouse
    AUTO_RESUME = TRUE;
 ```
 ## Recommended settings
-# Snowflake Warehouse Type & Configuration by Use Case
 
 |Use Case|Warehouse Type|Warehouse Size|Multi-Cluster|Scaling Policy|Auto-Suspend|Auto-Resume|Key Rationale|
 |---|---|---|---|---|---|---|---|
@@ -100,8 +100,6 @@ CREATE WAREHOUSE IF NOT EXISTS my_warehouse
 |**Complex Queries** |Standard|L – XL|❌ No   |N/A     |5–10 mins|✅ Yes|Large single queries benefit from more compute per node. Scale up (larger warehouse) rather than scale out. Consider query result caching and clustering keys to reduce repeated full scans|
 
 -----
-
-## Supporting Reference Table
 
 |Concept|Detail|
 |---|---|
