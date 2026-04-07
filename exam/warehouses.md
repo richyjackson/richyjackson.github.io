@@ -18,7 +18,6 @@
 
 ### 1. Standard Warehouse (default)
 - For general purpose query execution, DML & Loading
-- Billed per second, 60-second minimum on resume
 - Supports auto-suspend and auto-resume
 - Supports multi-cluster & auto-scale on Enterprise+
    - Scaling up (increasing size) solves slow queries
