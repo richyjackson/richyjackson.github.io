@@ -102,6 +102,7 @@ CREATE WAREHOUSE IF NOT EXISTS my_warehouse
 <br>
 -----
 <br>
+
 |Concept|Detail|
 |---|---|
 |**Standard vs Snowpark-Optimised**|Standard suits all three use cases. Snowpark-Optimised is for ML/Python workloads needing high memory|
