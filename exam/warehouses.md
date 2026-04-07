@@ -47,8 +47,6 @@ Warehouse size is primarily intended for improving query performance
 Multi-cluster warehouses are Standard Warehouses with multiple instances. Each query is assigned compute resource. Once this has been exhausted items are then queued. By adding clusters you avoid queueing<br><br>
 Each warehouse has a default of 10 clusters which can be overridden to the maxium allowable for the warehouse size<br>
 
-----
-
 | Size | Standard Credits / Hour | Standard Credits / Second | Standard (Gen1)| Standard (Gen2) | Snowpark-Optimised | Standard Max Clusters |
 |---|---|---|---|---|---|---|
 | XS  | 1   | 0.000278 |✅ Yes|❌ No |❌ No |300|
