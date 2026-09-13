@@ -23,4 +23,3 @@ Snowflake is a fully managed service which provides storage, compute and service
     - SQL API (REST)
 - **Snowgrid**
   - Allows users to collaborate and use data regardless of what cloud & region each team member is using
-
