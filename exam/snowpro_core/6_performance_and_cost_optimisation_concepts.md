@@ -1,4 +1,4 @@
-# 6 Performance and Cost Optimization Concepts
+# 6 Performance and Cost Optimisation Concepts
 ## Virtual Warehouse
 - Is a bundle of compute resource of CPU and RAM
 - Sized from extra-small to large etc..
@@ -17,3 +17,97 @@
 - The minimum charge is 60 seconds, then per second
 - Suspended warehouses do not accrue a credit cost
 - For multi-cluster billing you are charged for each active cluster
+
+## Additional Compute Services and Warehouse Types
+- **Snowpark Container Services** For running containerised applications with separate pricing
+- **Cortex AI Functions** Machine learning and AI workloads with usage-based billing
+- **Search Optimisation Service** Background compute for maintaining search indexes
+- **Automatic Clustering** Managed service for maintaining optimal data clustering
+- **Generation 2 Standard Warehouses (Gen2)** Improved analytics and data engineering workload performance
+    - Enhanced delete, update, and merge operations
+    - Optimised table scan operations
+    - Improved query compilation and execution
+    - Better resource utilisation and concurrency handling
+- **Snowpark-Optimized Warehouses** provides additional memory and optimised resource allocation for Python, Scala and Java compute-intensive workloads in Snowpark such as:
+    - Machine learning model training and Data science workloads
+    - Complex data transformations and processing
+    - Containerised applications running via Snowpark Container Services
+
+```sql
+-- Change from Generation 1 to Generation 2
+
+ALTER WAREHOUSE my_warehouse SET RESOURCE_CONSTRAINT = 'GENERATION_2';
+
+-- Change from Generation 2 back to Generation 1
+
+ALTER WAREHOUSE my_warehouse SET RESOURCE_CONSTRAINT = 'GENERATION_1';
+
+-- Switch to Snowpark-optimized warehouse
+
+ALTER WAREHOUSE my_warehouse SET 
+    WAREHOUSE_TYPE = 'SNOWPARK-OPTIMIZED'
+    RESOURCE_CONSTRAINT = 'GENERATION_2';
+
+-- Switch back to standard warehouse
+
+ALTER WAREHOUSE my_warehouse SET
+    WAREHOUSE_TYPE = 'STANDARD'
+    RESOURCE_CONSTRAINT = 'GENERATION_2';
+```
+- Changes can occur at any time regardless of whether the warehouse is suspended
+- Currently executing queries follow the existing warehouse
+
+
+## Cost optimisation strategies
+- Start with X-Small scaling up based on performance testing
+- Configure auto-suspend to avoid paying for idle resources
+- Use multi-cluster warehouses only where required
+- Repeating queries can use caching to avoid compute
+- Scale up where there are long running queues or blocked resources
+
+
+## Warehouse configuration
+- **Scale up** - Increase the size of your warehouse
+- **Scaling out** - Set the minimum and maximum clusters between 1 and 10
+- **Auto resume** - A suspended warehouse automatically restarts when a workload requires it
+- **Auto suspend** - Suspend the warehouse after inactivity to a minimum of 1 minute
+- **Scaling policy** - Change the behaviour of clusters
+    - `STANDARD` - The default favouring performance over cost
+    - `ECOMONY` - Waits a little longer favouring cost over performance
+    - To keep clusters always on you configure the min and max clusters to be the same
+
+
+```sql
+CREATE OR REPLACE WAREHOUSE my_wh WITH
+    WAREHOUSE_SIZE = 'XSMALL'
+    AUTO_SUSPEND = 600
+    AUTO_RESUME = TRUE
+    MIN_CLUSTER_COUNT = 1
+    MAX_CLUSTER_COUNT = 2
+    SCALING_POLICY = 'STANDARD';
+```
+## Query Acceleration Service (QAS)
+Moves compute to the service to optimise queries, good for:
+- Ad-hoc analysis or unpredictable workloads
+- Workloads with variable data volumes per query
+- Large table scans with filters
+- Mixed workloads containing both quick queries and resource intensive operations
+
+
+```sql
+ALTER WAREHOUSE my_wh
+    ENABLE_QUERY_ACCLERATION_SERVICE = TRUE
+    QUERY_ACCLERATION_MAX_SCALE_FACTOR = 27;
+```
+- It accelerates tables scans, filter operations and join-filter combinations for the following workloads:
+    - `SELECT`
+    - `INSERT`
+    - `CREATE TABLE AS SELECT (CTAS)`
+    - `COPY INTO`
+- Queries which cannot be optimised are due to:
+    - Insufficient partitions to scan
+    - Non-selective filters
+    - LIMIT clauses without ORDER BY
+    - Functions with non-deterministic results
+- Overall credit consumption will be increased, however they may be overall savings from warehouse consumption
+- 
