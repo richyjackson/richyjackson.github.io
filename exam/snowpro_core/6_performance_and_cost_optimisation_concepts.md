@@ -99,15 +99,51 @@ ALTER WAREHOUSE my_wh
     ENABLE_QUERY_ACCLERATION_SERVICE = TRUE
     QUERY_ACCLERATION_MAX_SCALE_FACTOR = 27;
 ```
+- A factor of 27 increases performance 4 times of the warehouse
 - It accelerates tables scans, filter operations and join-filter combinations for the following workloads:
     - `SELECT`
     - `INSERT`
-    - `CREATE TABLE AS SELECT (CTAS)`
+    - `CREATE TABLE AS SELECT` (CTAS)
     - `COPY INTO`
 - Queries which cannot be optimised are due to:
     - Insufficient partitions to scan
     - Non-selective filters
-    - LIMIT clauses without ORDER BY
+    - `LIMIT` clauses without `ORDER BY`
     - Functions with non-deterministic results
-- Overall credit consumption will be increased, however they may be overall savings from warehouse consumption
-- 
+- Use the `QUERY_ACCELERATION_ELIGIBLE` view or the `SYSTEM$ESTIMATE_QUERY_ACCELERATION` function to identify eligibility
+- Overall credit consumption will be increased, however there may be overall savings from warehouse consumption
+
+
+## Caching
+- Queries are pushed into the cache after running
+- These are returned if queried again without the need to access the disk
+- They are stored at environment level rather than belonging to a particular warehouse
+- **Metadata cache** stores metadata about your objects, micro-partitions, usage and query history
+- **Result cache** stores the result of each query run in a 24 period except:
+    - When data has changed in the micro-partition
+    - When using functions that recalculate at runtime (eg ``CURRENT_TIMESTAMP``)
+    - When users do not have the correct privileges to underlying objects
+- It does not need as running warehouse to return results
+- **Local disk cache** stores data on the virtual warehouses SSD from storage to avoid having to retrieve this again
+- This cache is flushed when the warehouse is suspended
+
+## Management and monitoring
+- Via ADMIN > COST MANAGEMENT in Snowsight using the ACCOUNTADMIN role
+- Virtual warehouses can be started, stopped or re-sized here
+
+## Resource monitors
+- Limits cost consumption
+- Configurable using the ACCOUNTADMIN role
+- **Frequency** usually configured monthly inline with Snowflakes builling cycle however can go to daily
+- **Trigger** when the threshold is met the following actions can be considered:
+    - `NOTIFY` You are notified only (provided notifications are configured in the webUI)
+    - `SUSPEND` New queries suspended, active remain which may result in the threshold being breached
+    - `IMMEDIATE` All queries are terminated
+ 
+## Query performance troubleshooting
+-
+
+
+
+
+
