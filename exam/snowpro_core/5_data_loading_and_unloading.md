@@ -178,10 +178,9 @@ CREATE TASK mytask_minute WAREHOUSE = mywh SCHEDULE = '5 MINUTE' AS INSERT INTO 
 create task task5 after task2 as insert into t1(ts) values(current_timestamp);
 ```
 ## Openflow
-
-
-
-
-
-
+- Uses Apache's NiFi service to extend the ETL offering to all data sources, batch and streaming services
+- All configuration sits outside Snowflake
+- Primarily focused around ingestion
 ## dbt Projects
+- Extends the dbt Core offering which carried external overhead, configuration, pipeline debugging and CI/CD
+- dbt Projects natively works with Workspaces provides CI/CD via GitHub Actions & Snowflake CLI
