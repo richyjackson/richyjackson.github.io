@@ -175,6 +175,7 @@ List @my_stage;
 CREATE TASK mytask_minute WAREHOUSE = mywh SCHEDULE = '5 MINUTE' AS INSERT INTO mytable(ts) VALUES(CURRENT_TIMESTAMP);
 
 -- Task chaining
+
 create task task5 after task2 as insert into t1(ts) values(current_timestamp);
 ```
 ## Openflow
