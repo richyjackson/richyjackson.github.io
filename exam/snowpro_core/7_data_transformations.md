@@ -131,10 +131,7 @@ UNPIVOT ( value_column FOR name_column IN (col1, col2, col3) )
 
 SELECT *
 FROM quarterly_sales
-UNPIVOT (sales_amount FOR quarter IN (q1_sales AS 'Q1', q2_sales AS 'Q2') );
-
-
-
+UNPIVOT (sales_amount FOR quarter IN (q1_sales AS 'Q1', q2_sales AS 'Q2'));
 ```
 
 
