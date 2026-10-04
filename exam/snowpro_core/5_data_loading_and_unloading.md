@@ -1,4 +1,31 @@
 # 5 Data Loading and Unloading
+
+## Table of Contents
+- [Stages](#stages)
+  - [External Stage](#external-stage)
+  - [External Tables](#external-tables)
+  - [Internal Stage](#internal-stage)
+    - [User Stage](#user-stage)
+    - [Table Stage](#table-stage)
+    - [Named Stage](#named-stage)
+- [File Formats](#file-formats)
+- [Storage Integration](#storage-integration)
+- [Commands](#commands)
+- [Snowpipe](#snowpipe)
+- [Snowpipe Streaming](#snowpipe-streaming)
+- [Dynamic Tables](#dynamic-tables)
+- [Data Loading Best Practice](#data-loading-best-practice)
+  - [Load Options](#load-options)
+    - [Validation Mode](#validation-mode)
+    - [Error on Column Count Mismatch](#error-on-column-count-mismatch)
+    - [ON_ERROR](#on_error)
+- [Unloading Data](#unloading-data)
+- [Streams and Tasks](#streams-and-tasks)
+  - [Streams](#streams)
+  - [Tasks](#tasks)
+- [Openflow](#openflow)
+- [dbt Projects](#dbt-projects)
+
 ## Stages
 ### External Stage
 - Point to 3rd party storage locations
@@ -99,7 +126,7 @@ get @~/myfiles file:///tmp/data/;
 - You pay using snowflake credits under a warehouse called Snowpipe
 - Or essentially runs the copy into commands continuously
 ```sql
-create pipe mypipe as copy into mytable from @mystage; create pipe mypipe2 as copy into mytable(c1, c2) from (select $5, $4 from @mystage); create pipe mypipe_s3 auto_ingest = true aws_sns_topic = 'arn:aws:sns:us-west-2:001234567890:s3_mybucket' as copy into snowpipe_db.public.mytable from @snowpipe_db.public.mystage file_format = (type = 'JSON');
+create pipe mypipe as copy into mytable from @mystage; create pipe mypipe2 as copy into mytable(c1, c2) from (select $5, $4 from @mystage); create pipe mypipe_s3 auto_ingest = true aws_sns_topic = 'ar[...]
 ```
 - Metadata / History is held for 64 days via `COPY INTO` commands, with Snowpipe it is 14
 - Account Admin or MONITOR USEAGE users can access history via Snowsight or the `PIPE_USEAGE_HISTORY` table function
@@ -114,7 +141,7 @@ create pipe mypipe as copy into mytable from @mystage; create pipe mypipe2 as co
 - Snowflake identifies which data has changed and automatically refreshes it on schedule
 - Refresh is controlled via a lag
 ```sql
-CREATE OR REPLACE DYNAMIC TABLE customer_metrics TARGET_LAG = '5 minutes' WAREHOUSE = compute_wh AS SELECT customer_id, COUNT(*) as transaction_count, SUM(amount) as total_spent, AVG(amount) as avg_transaction, MAX(transaction_timestamp) as last_transaction FROM transactions GROUP BY customer_id;
+CREATE OR REPLACE DYNAMIC TABLE customer_metrics TARGET_LAG = '5 minutes' WAREHOUSE = compute_wh AS SELECT customer_id, COUNT(*) as transaction_count, SUM(amount) as total_spent, AVG(amount) as avg_tr[...]
 ```
 - Dynamic Tables avoid the need for complex pipelines
 - They allow transformation across multiple tables
