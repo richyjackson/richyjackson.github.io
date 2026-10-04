@@ -10,7 +10,12 @@
 - [Management and monitoring](#management-and-monitoring)
 - [Resource monitors](#resource-monitors)
 - [Query performance troubleshooting](#query-performance-troubleshooting)
-- [Search optimisation service](#search-optimisation-service)
+  - [Query profile](#query-profile)
+  - [Query history](#query-history)
+  - [Data spilling](#data-spilling)
+  - [Micro-partition pruning](#micro-partition-pruning)
+  - [Clustering information for micro-partitions](#clustering-information-for-micro-partitions)
+  - [Search optimisation service](#search-optimisation-service)
 
 ## Virtual Warehouse
 - Is a bundle of compute resource of CPU and RAM
@@ -154,35 +159,31 @@ ALTER WAREHOUSE my_wh
     - `IMMEDIATE` All queries are terminated
  
 ## Query performance troubleshooting
-**Query profile**
+### Query profile
 Provides a graphical representation of the execution plan and the steps taken to resolve
 - The width of lines between nodes indicate volume of data, it also has a record counter
 - Within each node the ORANGE bar indicates initialisation time
 - The BLUE bar indicates processing time
 - The box in the top right shows the most expensive nodes with links to show detail
 
-
-**Query history**
+### Query history
 Is found within the INFORMATION_SCHEMA views to show queries executed within 7 days
 - ``QUERY_HISTORY`` queries executed within a specific timeframe
 - ``QUERY_HISTORY_BY_SESSION`` queries executed within a specific timeframe within a given session
 - ``QUERY_HISTORY_BY_USER`` executed within a specific timeframe within a given user
 - ``QUERY_HISTORY_BY_WAREHOUSE`` executed within a specific timeframe within a given warehouse 
 
-
 The following useful rows are returned:
 - ``QUERY_ID`` the unique id for the query
 - ``QUEUED_PROVISIONING_TIME`` time spent in the warehouse queue. Optimise wait times by increasing warehouse size
 - ``COMPILATION_TYPE`` how long it takes to compile the query. Optimise run time by simplifying the query
 
-
-**Data Spilling**
+### Data spilling
 If your warehouse does not have enough memory (is not large enough) to service your workload, processing is spilled to disk
 - ``Bytes spilled to local storage`` processing is spilled to the SDD cache
 - ``Bytes spilled to remote storage`` processing is spilled to a remote drive (must always be avoided due to performance)
 
-
-**Micro-partition pruning**
+### Micro-partition pruning
 - Data is organised into micro-partitions via clustering keys which are preselected by Snowflake
 - Metadata tells Snowflake what data resides in each micro-partition
 - Via **Query pruning** micro-partitions are ignored in queries to increase performance
@@ -190,16 +191,14 @@ If your warehouse does not have enough memory (is not large enough) to service y
     - Aim for highly selective queries to improve performance
     - If a query is highly selective but there is a high percentage of partitions scanned the partitions may be poorly clustered
 
-
-**Clustering information for micro-partitions**
+### Clustering information for micro-partitions
 - Clustering info is stored in the partitions metadata which includes:
     - Total partitions in table
     - Total partitions that overlap
     - Depth of overlapping partitions (average of partitions which overlap across their values)
 - The lower the depth the better
 
-
-**Search optimisation service**
+### Search optimisation service
 - Stores the location of commonly searched values via a **search access path** to increase performance and query pruning
 - Available in Enterprise edition or above
 - Works well with the QAS where rows are filtered before QAS conducts the processing
