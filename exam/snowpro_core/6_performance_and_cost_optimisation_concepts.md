@@ -1,4 +1,17 @@
 # 6 Performance and Cost Optimisation Concepts
+
+## Table of Contents
+- [Virtual Warehouse](#virtual-warehouse)
+- [Additional Compute Services and Warehouse Types](#additional-compute-services-and-warehouse-types)
+- [Cost optimisation strategies](#cost-optimisation-strategies)
+- [Warehouse configuration](#warehouse-configuration)
+- [Query Acceleration Service (QAS)](#query-acceleration-service-qas)
+- [Caching](#caching)
+- [Management and monitoring](#management-and-monitoring)
+- [Resource monitors](#resource-monitors)
+- [Query performance troubleshooting](#query-performance-troubleshooting)
+- [Search optimisation service](#search-optimisation-service)
+
 ## Virtual Warehouse
 - Is a bundle of compute resource of CPU and RAM
 - Sized from extra-small to large etc..
@@ -73,7 +86,7 @@ ALTER WAREHOUSE my_warehouse SET
 - **Auto suspend** - Suspend the warehouse after inactivity to a minimum of 1 minute
 - **Scaling policy** - Change the behaviour of clusters
     - `STANDARD` - The default favouring performance over cost
-    - `ECOMONY` - Waits a little longer favouring cost over performance
+    - `ECONOMY` - Waits a little longer favouring cost over performance
     - To keep clusters always on you configure the min and max clusters to be the same
 
 
