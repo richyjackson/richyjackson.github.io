@@ -50,7 +50,7 @@ WHEN MATCHED AND source.status = 'UPDATED' THEN UPDATE SET ...
   - **Analytical calculations** computing percentiles, moving averages, or growth rates
 
 
-**ROW_NUMBER()**
+#### ROW_NUMBER()
 Provides a unique sequential number
 ```sql
 SELECT
@@ -58,7 +58,7 @@ SELECT
   ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date) as order_sequence
 FROM orders;
 ```
-***RANK()**
+#### RANK()
 Assigns ranks to rows and leaves GAPS where there are TIES
 ```sql
 SELECT
@@ -66,7 +66,7 @@ SELECT
   RANK() OVER (ORDER BY sales_amount DESC) as sales_rank
 FROM product_sales;
 ```
-***DENSE_RANK()**
+#### DENSE_RANK()
 Assigns ranks to rows and leaves NO GAPS where there are TIES
 ```sql
 SELECT
@@ -74,9 +74,27 @@ SELECT
   DENSE_RANK() OVER (ORDER BY sales_amount DESC) as sales_rank
 FROM product_sales;
 ```
-
-
-
+#### LAG() and LEAD()
+Looks at values before or after the current row
+```sql
+SELECT
+  order_date, sales_amount,
+  LAG(sales_amount) OVER (ORDER BY order_date) as previous_day_sales,
+  LEAD(sales_amount) OVER (ORDER BY order_date) as next_day_sales,
+  sales_amount - LAG(sales_amount) OVER (ORDER BY order_date) as day_over_day_change
+FROM daily_sales
+ORDER BY order_date;
+```
+#### FIRST_VALUE() and LAST_VALUE()
+Access the first or last value in the window
+```sql
+SELECT
+  customer_id, order_date, order_amount,
+  FIRST_VALUE(order_amount) OVER ( PARTITION BY customer_id ORDER BY order_date ) as first_order_amount,
+  order_amount - FIRST_VALUE(order_amount) OVER ( PARTITION BY customer_id ORDER BY order_date) as amount_vs_first_order
+FROM orders; Aggregate window
+```
+#### 
 
 
 
