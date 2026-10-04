@@ -113,7 +113,8 @@ ORDER BY order_date;
 ```
 ### PIVOT and UNPIVOT
 #### PIVOT
-Converts row values into columns
+- Converts row values into columns
+- It makes data taller
 ```sql
 SELECT * FROM source_table
 PIVOT (aggregate_function(column_to_aggregate)
@@ -123,7 +124,10 @@ SELECT * FROM monthly_sales
 PIVOT (SUM(sales_amount) FOR month IN ('January' AS jan, 'February' AS feb) );
 ```
 #### UNPIVOT
-Converts column data into rows
+- Converts column data into rows
+- It makes data taller
+- Rows with NULL values are excluded, use case statements to preserve these
+- Dynamic SQL is needed if you do not know the column headers
 ```sql
 SELECT *
 FROM source_table
