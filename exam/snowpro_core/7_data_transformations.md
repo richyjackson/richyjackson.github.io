@@ -43,6 +43,7 @@ WHEN MATCHED AND source.status = 'UPDATED' THEN UPDATE SET ...
 ```
 ### Window Functions
 - They perform calculations across sets of rows returning a result against a single row
+- They are efficient, however when using partitioning, if these match the clustering they perform better
 - They can provide:
   - **Ranking** finding the top N records in each category
   - **Running totals** calculating cumulative sums or averages
@@ -94,9 +95,22 @@ SELECT
   order_amount - FIRST_VALUE(order_amount) OVER ( PARTITION BY customer_id ORDER BY order_date) as amount_vs_first_order
 FROM orders; Aggregate window
 ```
-#### 
-
-
+#### Running totals
+```sql
+SELECT
+  order_date, daily_sales,
+  SUM(daily_sales) OVER (ORDER BY order_date) as running_total
+FROM daily_sales
+ORDER BY order_date;
+```
+#### Moving averages
+```sql
+SELECT
+  order_date, daily_sales,
+  AVG(daily_sales) OVER (ORDER BY order_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) as seven_day_moving_average
+FROM daily_sales
+ORDER BY order_date;
+```
 
 
 
