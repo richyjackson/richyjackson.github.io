@@ -9,9 +9,9 @@
 > Snowpipe, automatic clustering and some Cortex AI functions use the Snowflake managed service instead and do not require a warehouse
 
 - Compute services are charged via the consumption based model (pay as you go) with 3 pricing models
-    - *On-Demand* full flexibility, higher cost
-    - *Pre-Purchased Capacity* with commitment to an agreed volume at reduce cost
-    - *Annual Upfront* annual commitments with significant savings
+    - **On-Demand** full flexibility, higher cost
+    - **Pre-Purchased Capacity** with commitment to an agreed volume at reduce cost
+    - **Annual Upfront** annual commitments with significant savings
 - The rate you pay depends on your chosen pricing model, snowflake edition, cloud provider and geographical region
 - Each increase in size doubles the credit cost
 - The minimum charge is 60 seconds, then per second
@@ -141,9 +141,66 @@ ALTER WAREHOUSE my_wh
     - `IMMEDIATE` All queries are terminated
  
 ## Query performance troubleshooting
--
+**Query profile**
+Provides a graphical representation of the execution plan and the steps taken to resolve
+- The width of lines between nodes indicate volume of data, it also has a record counter
+- Within each node the ORANGE bar indicates initialisation time
+- The BLUE bar indicates processing time
+- The box in the top right shows the most expensive nodes with links to show detail
 
 
+**Query history**
+Is found within the INFORMATION_SCHEMA views to show queries executed within 7 days
+- ``QUERY_HISTORY`` queries executed within a specific timeframe
+- ``QUERY_HISTORY_BY_SESSION`` queries executed within a specific timeframe within a given session
+- ``QUERY_HISTORY_BY_USER`` executed within a specific timeframe within a given user
+- ``QUERY_HISTORY_BY_WAREHOUSE`` executed within a specific timeframe within a given warehouse 
 
 
+The following useful rows are returned:
+- ``QUERY_ID`` the unique id for the query
+- ``QUEUED_PROVISIONING_TIME`` time spent in the warehouse queue. Optimise wait times by increasing warehouse size
+- ``COMPILATION_TYPE`` how long it takes to compile the query. Optimise run time by simplifying the query
 
+
+**Data Spilling**
+If your warehouse does not have enough memory (is not large enough) to service your workload, processing is spilled to disk
+- ``Bytes spilled to local storage`` processing is spilled to the SDD cache
+- ``Bytes spilled to remote storage`` processing is spilled to a remote drive (must always be avoided due to performance)
+
+
+**Micro-partition pruning**
+- Data is organised into micro-partitions via clustering keys which are preselected by Snowflake
+- Metadata tells Snowflake what data resides in each micro-partition
+- Via **Query pruning** micro-partitions are ignored in queries to increase performance
+- The **Query profile** displays the number of partitions scanned versus the total
+    - Aim for highly selective queries to improve performance
+    - If a query is highly selective but there is a high percentage of partitions scanned the partitions may be poorly clustered
+
+
+**Clustering information for micro-partitions**
+- Clustering info is stored in the partitions metadata which includes:
+    - Total partitions in table
+    - Total partitions that overlap
+    - Depth of overlapping partitions (average of partitions which overlap across their values)
+- The lower the depth the better
+
+
+**Search optimisation service**
+- Stores the location of commonly searched values via a **search access path** to increase performance and query pruning
+- Available in Enterprise edition or above
+- Works well with the QAS where rows are filtered before QAS conducts the processing
+- Carries ongoing cost to maintain the search access path
+- Effective for:
+    - Stable datasets
+    - Selective point lookup queries
+    - Substring and regular expression searches (eg ``ILIKE``, ``RLIKE``)
+    - Semi-structured data queries
+    - Text and IPv4 address searches (eg ``SEARCH``, ``SEARCH_IP``)
+    - Geospatial queries
+- It is configured on individual tables
+- The search access path takers time to build in the background, progress is seen via ``SHOW TABLES`` and ``SEARCH_OPTIMISATION_PROGRESS``
+
+```sql
+alter table test_table add search optimization;
+```
