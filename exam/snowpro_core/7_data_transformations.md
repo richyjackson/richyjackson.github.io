@@ -32,9 +32,9 @@ WHEN NOT MATCHED THEN
 ```
 Using ``MATCH ALL BY NAME`` removes need to declare each column
 ```sql
-𝘔𝘌𝘙𝘎𝘌 𝘐𝘕𝘛𝘖 𝘵𝘢𝘳𝘨𝘦𝘵_𝘵𝘢𝘣𝘭𝘦 ...
-𝘞𝘏𝘌𝘕 𝘔𝘈𝘛𝘊𝘏𝘌𝘋 𝘛𝘏𝘌𝘕 𝘜𝘗𝘋𝘈𝘛𝘌 𝘈𝘓𝘓 𝘉𝘠 𝘕𝘈𝘔𝘌
-𝘞𝘏𝘌𝘕 𝘕𝘖𝘛 𝘔𝘈𝘛𝘊𝘏𝘌𝘋 𝘛𝘏𝘌𝘕 𝘐𝘕𝘚𝘌𝘙𝘛 𝘈𝘓𝘓 𝘉𝘠 𝘕𝘈𝘔𝘌
+MERGE INTO target_table ...
+WHEN MATCHED THEN UPDATE ALL BY NAME
+WHEN NOT MATCHED THEN INSERT ALL BY NAME
 ```
 Delete statements are also supported
 ```sql
@@ -137,17 +137,155 @@ SELECT *
 FROM quarterly_sales
 UNPIVOT (sales_amount FOR quarter IN (q1_sales AS 'Q1', q2_sales AS 'Q2'));
 ```
+### Common Table Expressions
+- For breaking down comple queries and reusing code
+- Work with hierarchical data nad use recursive queries
+- CTEs only exist for the duration of the query and are evaluated each time they are referenced
+- A tempoarary table may be better if a CTE needs to be referenced multiple times
+```sql
+WITH cte_name AS (
+  SELECT columns FROM table WHERE conditions
+)
 
+SELECT * FROM cte_name;
+```
+### Recursive CTEs
+- Use for hierarchical data such as organisation structures
+- Use `RECURSIVE` keyword
+```sql
+WITH RECURSIVE employee_hierarchy AS (
 
+-- Anchor: top-level employees
 
+  SELECT employee_id, manager_id, 1 as level
+  FROM employees
+  WHERE manager_id IS NUL
+
+UNION ALL
+
+-- Recursive: employees reporting to previous level
+
+  SELECT e.employee_id, e.manager_id, eh.level + 1
+  FROM employees e
+  INNER JOIN employee_hierarchy eh ON e.manager_id = eh.employee_id
+
+)
+
+SELECT * FROM employee_hierarchy;
+```
+### Estimating Functions
+**Cardinality estimation** - HyperLogLog, an algorithm to estimate the number of distinct values in a dataset<p>
+**Similarity Estimation** - MinHash, for estimating the similarity of datsets without using set operations<p>
+**Percentage Estimation** -t-Digest algorithm, a space and time-efficient way of estimating approximate percentile values in datasets<p>
+**Table Sampling** - To return a random subset of rows from a dataset
+```sql
+select * from testtable sample (10 rows); -- For a fixed number
+select * from testtable sample (10); - For a percentage return
+```
+### Try Functions
+- For loading and unloading data where values dont match the expected type
+- Where the expected type is not received, NULL is provided
+- They have minimal performance overhead
+- `TRY_CAST, TRY_TO_NUMBER, TRY_TO_DATE, TRY_TO_TIMESTAMP, TRY_TO_DECIMAL`
 ## Working with Semi-structured Data
+- Snowflake allows you to store semi-structured data in a relational table formal using the data type of `VARIANT`
+- JSON, AVRO, Parquet, ORC, or XML can be added directly without having to specify the format
+- The maximum length of a variant column is 128 MB
+- Snowflake also supports object and arrays with this data type
+```sql
+create table variant_test (col1 variant);
+insert into variant_test select ['London', 'Sydney' ];
+select col1[1] from variant_test;
+```
+#### JSONPath expressioons
+- You can access nested elements using colon or bracket notation
+```sql
+-- Sample JSON in a VARIANT column
 
+SELECT raw_data FROM customer_events;
+-- {'customer_id': 123, 'address': {'city': 'London', 'country': 'UK'}}
 
+-- Accessing nested values with colon notation
+
+SELECT
+    raw_data:customer_id as customer_id,
+    raw_data:address:city as city,
+    raw_data:address:country as country
+FROM customer_events;
+
+-- Using bracket notation
+
+SELECT raw_data['customer_id'] FROM customer_events;
+
+-- Use the double colon to cast to a specific data type
+SELECT
+  raw_data:customer_id::INTEGER as customer_id,
+  raw_data:order_date::DATE as order_date,
+  raw_data:total_amount::DECIMAL(10,2) as total_amount
+FROM orders_json;
+```
+- **PARSE_JSON** - converts a string to a JSON variant
+```sql
+SELECT PARSE_JSON({"name":"John", "age":30}')
+```
+- **TO_JSON** - Converts a variant to a JSON string
+```sql
+SELECT TO_JSON(raw_data) as json_string FROM customer_data
+```
+- **OBJECT_CONSTRUCT** - Converts relation data to a JSON object
+```sql
+SELECT OBJECT_CONSTRUCT( 'customer_id', customer_id, 'name', customer_name, 'city', city ) as customer_json
+FROM customers;
+```
+- **GET** - To extract a value from a JSON string `SELECT GET(raw_data, 'customer_id') FROM events;`
+- **GET_PATH** - To extract data from a nested path `SELECT GET_PATH(raw_data, 'address.city') FROM events;`
+- **FLATTEN** - Converts semi-structured data into relational data. The `LATERAL` keyword allows you to reference the outer query
+```sql
+-- Source data with array
+
+SELECT raw_data FROM orders;
+
+-- {'order_id': 123, 'items': [{'product': 'A', 'qty': 2}, {'product': 'B', 'qty': 1}]}
+-- Flatten the items array
+
+SELECT
+  raw_data:order_id::INTEGER as order_id,
+  f.value:product::STRING as product,
+  f.value:qty::INTEGER as quantity
+FROM orders,
+  LATERAL FLATTEN(input => raw_data:items) f;
+```
 ## Working with Unstructured Data
+- Unstructured data is stored in stages
+- A directory table catalogs a list of stages files
+```sql
+ALTER STAGE my_stage_name SET DIRECTORY = (ENABLE = TRUE);
 
+-- To force a refresh:
 
+ALTER STAGE my_stage_name
 
+-- To query:
+
+SELECT * FROM DIRECTORY(@my_stage);
+```
 ## Iceberg Tables
-
-
-## Key Considerations
+- Iceberg tables are an open table format designed for large analytic datasets and data lakes
+- Data can be queries in your own cloud storage (eg. S3, Azure Blob, GCS) using the Iceberg format without copying data into Snowflake
+- It is used to share data across platform
+- Avoids vendor lock in - Choose Iceberg tables when interoperability with other engines is
+- **Snowflake-Managed Iceberg Tables** - Are where Snowflake manages both the data and the metadata
+```sql
+CREATE ICEBERG TABLE products
+  (product_id INTEGER, product_name STRING, category STRING, price DECIMAL(10,2))
+  CATALOG = 'SNOWFLAKE'
+  EXTERNAL_VOLUME = 'my_external_volume'
+  BASE_LOCATION = 'products/';
+```
+- **Externally Managed Iceberg Tables** - Are where data and the metadata are managed outside Snowflake (reads data doesnt control)
+```sql
+CREATE ICEBERG TABLE external_sales
+  CATALOG = 'GLUE' -- or 'POLARIS', etc.
+  EXTERNAL_VOLUME = 'my_external_volume'
+  METADATA_FILE_PATH = 's3://mybucket/sales/metadata/v1.metadata.json';
+``
