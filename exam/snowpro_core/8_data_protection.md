@@ -1,4 +1,17 @@
 # 8 Data Protection
+
+## Table of Contents
+- [How Snowflake keeps data safe](#how-snowflake-keeps-data-safe)
+  - [Infrastructure Protection](#infrastructure-protection)
+  - [High Availability](#high-availability)
+  - [Data Encryption](#data-encryption)
+  - [Data Protection](#data-protection)
+- [Zero-Copy Cloning](#zero-copy-cloning)
+- [Time Travel](#time-travel)
+  - [Querying table data at a specific point in time](#querying-table-data-at-a-specific-point-in-time)
+- [Fail Safe](#fail-safe)
+- [Underlying Storage Concepts](#underlying-storage-concepts)
+
 ## How Snowflake keeps data safe
 ### Infrastructure Protection
 - Snowflake seperates architecture through compute, storage and service layers
