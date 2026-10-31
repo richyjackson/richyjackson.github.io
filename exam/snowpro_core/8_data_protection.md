@@ -50,7 +50,10 @@ SHOW DATABASES HISTORY;
 UNDROP DATABASE SALES_DB;
 ```
 ## Fail Safe
-
-
-
+- When an object falls outside of the data retention period it lands in a fail safe position for 7 days where Snowflake employees can recover the data on a best endevaour basis
+- This is not available for Transient or Temporary tables
 ## Underlying Storage Concepts
+- Dropping and truncating tables results in entire copies of data being held in time-travel or fail safe
+- In other cases Snowflake works out which data it needs to store & recover data
+- Sotrage useage = Overall table size vs the number of records modified
+- See storage used by fail safe by using ACCOUNTADMIN then navigating to Admin - Cost Management -> Consumption
