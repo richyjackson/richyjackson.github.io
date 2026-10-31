@@ -14,9 +14,8 @@
 - The reader would consumer your own credits
 - To configure go to Admin > Accounts
 ## Native Applications
-
-
-
+- They are self contained SAAS applications which can be installed within your Snowflake enivornment and are installed via your marketplace
+- They avoid issues around transfer of data outside of your environment, security concerns and data silos
 ## Data Clean Rooms
 
 
