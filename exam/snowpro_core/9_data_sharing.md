@@ -14,7 +14,7 @@
 ## Secure Data Shares
 - By default you get access to the share SNOWFLAKE_SAMPLE_DATA
 ## Data Marketplace and Data Exchange
-- Gain instant access to external dataset via a catalogue
+- Gain instant access to external datasets via a catalogue
 ## Private Data Exchange
 - A private data hub for collaboration between specific members
 - Data providers and consumers must have a full Snowflake account
