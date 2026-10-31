@@ -1,4 +1,13 @@
 # 9 Data Sharing
+
+## Table of Contents
+- [Secure Data Shares](#secure-data-shares)
+- [Data Marketplace and Data Exchange](#data-marketplace-and-data-exchange)
+- [Private Data Exchange](#private-data-exchange)
+  - [Reader accounts](#reader-accounts)
+- [Native Applications](#native-applications)
+- [Data Clean Rooms](#data-clean-rooms)
+
 - Data sharing is a metadata only operation and handled by the cloud services layer
 - **Data providers** own the data and share with others, they create a share in their Snowflake account and grants the required access to objects they wish to share
 - **Data consumers** get read only access to the share and appears like any other database
