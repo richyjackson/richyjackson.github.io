@@ -1,4 +1,30 @@
 # 7 Data Transformations
+
+## Page Index
+- [Working with Relational Data](#working-with-relational-data)
+  - [User Defined Functions (UDFs)](#user-defined-functions-udfs)
+  - [Stored Procedures](#stored-procedures)
+  - [MERGE operator](#merge-operator)
+  - [Window Functions](#window-functions)
+    - [ROW_NUMBER()](#rownumber)
+    - [RANK()](#rank)
+    - [DENSE_RANK()](#dense_rank)
+    - [LAG() and LEAD()](#lag-and-lead)
+    - [FIRST_VALUE() and LAST_VALUE()](#first_value-and-last_value)
+    - [Running totals](#running-totals)
+    - [Moving averages](#moving-averages)
+  - [PIVOT and UNPIVOT](#pivot-and-unpivot)
+    - [PIVOT](#pivot)
+    - [UNPIVOT](#unpivot)
+  - [Common Table Expressions](#common-table-expressions)
+  - [Recursive CTEs](#recursive-ctes)
+  - [Estimating Functions](#estimating-functions)
+  - [Try Functions](#try-functions)
+- [Working with Semi-structured Data](#working-with-semi-structured-data)
+  - [JSONPath expressions](#jsonpath-expressions)
+- [Working with Unstructured Data](#working-with-unstructured-data)
+- [Iceberg Tables](#iceberg-tables)
+
 ## Working with Relational Data
 ### User Defined Functions (UDFs)
 - UDFs calculate and return a value or set of values
@@ -197,7 +223,7 @@ create table variant_test (col1 variant);
 insert into variant_test select ['London', 'Sydney' ];
 select col1[1] from variant_test;
 ```
-#### JSONPath expressioons
+#### JSONPath expressions
 - You can access nested elements using colon or bracket notation
 ```sql
 -- Sample JSON in a VARIANT column
@@ -288,4 +314,4 @@ CREATE ICEBERG TABLE external_sales
   CATALOG = 'GLUE' -- or 'POLARIS', etc.
   EXTERNAL_VOLUME = 'my_external_volume'
   METADATA_FILE_PATH = 's3://mybucket/sales/metadata/v1.metadata.json';
-``
+```
