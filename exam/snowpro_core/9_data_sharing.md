@@ -17,6 +17,6 @@
 - They are self contained SAAS applications which can be installed within your Snowflake enivornment and are installed via your marketplace
 - They avoid issues around transfer of data outside of your environment, security concerns and data silos
 ## Data Clean Rooms
-
-
-
+- Are a protected space for multiple parties (internal & external) to collaborate with your data at the same time
+- Only approved analysis can take place without exposing raw data
+- Datasets can be compared only where there is a match
