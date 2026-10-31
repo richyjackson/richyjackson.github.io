@@ -298,7 +298,8 @@ SELECT * FROM DIRECTORY(@my_stage);
 - Data can be queries in your own cloud storage (eg. S3, Azure Blob, GCS) using the Iceberg format without copying data into Snowflake
 - It is used to share data across platform
 - Avoids vendor lock in - Choose Iceberg tables when interoperability with other engines is
-- **Snowflake-Managed Iceberg Tables** - Are where Snowflake manages both the data and the metadata
+### Snowflake Managed Iceberg Tables
+- Are where Snowflake manages both the data and the metadata
 ```sql
 CREATE ICEBERG TABLE products
   (product_id INTEGER, product_name STRING, category STRING, price DECIMAL(10,2))
@@ -306,7 +307,8 @@ CREATE ICEBERG TABLE products
   EXTERNAL_VOLUME = 'my_external_volume'
   BASE_LOCATION = 'products/';
 ```
-- **Externally Managed Iceberg Tables** - Are where data and the metadata are managed outside Snowflake (reads data doesnt control)
+### Externally Managed Iceberg Tables
+- Are where data and the metadata are managed outside Snowflake (reads data doesnt control)
 ```sql
 CREATE ICEBERG TABLE external_sales
   CATALOG = 'GLUE' -- or 'POLARIS', etc.
