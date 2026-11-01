@@ -1,4 +1,12 @@
 # Snowflake AI & ML
+
+## Table of Contents
+- [Key Principles](#key-principles)
+- [Snowflake AI & ML Tools and Services](#snowflake-ai--ml-tools-and-services)
+- [Snowpark for Machine Learning](#snowpark-for-machine-learning)
+- [Model Deployment and Management](#model-deployment-and-management)
+- [Use Cases and Examples](#use-cases-and-examples)
+
 ## Key Principles
 **Complete Data Security** - All models operate within Snowflakes security and governance framework unnless you choose otherwise
 **Strict Data Privacy** - There is clear seperation between your data and model activities, models made available to external customers do not expose data
@@ -23,7 +31,7 @@
 - There is a complete audit trail of model useage
 ## Use Cases and Examples
 - **Customer Analytics & Personalisation** retail companies using ortex AI SQL to analyise customer reviews and feedback or creating personalised recommendations
-- **Financial Risk and Fraud Detection** banks use Snowparks real time ML capabilities to score transactioons as they occur. Document AI processes loan applications. Cortex Search enables compliance teams to quickly find relevant historical transactions
+- **Financial Risk and Fraud Detection** banks use Snowparks real time ML capabilities to score transactioons as they occur. Document AI processes loan applications. Cortex Search enables compliance t[...]
 - **Healthcare and Life Sciences** Document AI used to extract data from clinical notes and research papers. ML models used to identify patients at risk of specific conditions
 - **Supply Chain Optimisation** Predictive models used over sensor data on equipment to predict failure. Cortex Analyst to ask about inventory levels in natural language
 - **Marketing and COntent Analysis** Media companies use Cortex AI SQL to analyse social media responses and content performance. Document AI processess contracts to ensure compliance
