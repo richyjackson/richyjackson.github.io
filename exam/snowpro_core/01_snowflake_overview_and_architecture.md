@@ -1,4 +1,16 @@
 # 1 Snowflake Overview and Architecture
+
+## Table of Contents
+- [What is the Snowflake platform](#what-is-the-snowflake-platform)
+- [Software as a Service](#software-as-a-service)
+- [Snowflake Industry Compliance](#snowflake-industry-compliance)
+- [The Snowflake Architecture](#the-snowflake-architecture)
+  - [Snowflake Editions](#snowflake-editions)
+  - [Snowflakes Three-Tier Architecture](#snowflakes-three-tier-architecture)
+- [Tools and Interfaces](#tools-and-interfaces)
+- [Data Sharing](#data-sharing)
+- [Snowflake Partner Ecosystem](#snowflake-partner-ecosystem)
+
 ## What is the Snowflake platform
 The three most prominents data architectures are supported:
 - **Data Lakehouse** Store all your company data within the platform making it available to data consumers using standard SQL
@@ -36,7 +48,7 @@ Snowflake breaks away from traditional architecture constrainted by hardware, ne
 - **Virtual Private Snowflake (VPS)** oferring the highest level of security and is isolated from all other Snowflake accounts
 ### Snowflakes Three-Tier Architecture
 Snowflake consists of three architectural layers:
-- **Cloud Services Layer** which looks after the overall management of the Snowflake account, user authentication, metadata and infrastructure management. It manages query planning, optimisation and query pruning
+- **Cloud Services Layer** which looks after the overall management of the Snowflake account, user authentication, metadata and infrastructure management. It manages query planning, optimisation and q[...]
 - **Query Processing Layer** managing all query execution. Compute is elastic so can scale up and down and is controlled via Virtual Warehouse (CPU & RAM)
 - **Database Storage Layer** which manages and organises your data in its optimaised formats. Data is stored in micro-partitions up to 50-500MB based on a clustering key
 ## Tools and Interfaces
