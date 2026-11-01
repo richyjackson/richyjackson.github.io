@@ -34,14 +34,30 @@ Snowflake breaks away from traditional architecture constrainted by hardware, ne
 - **Enterprise** for large scale enterprise clients including data protection and performance features
 - **Business Critical** add enhanced security features for organisations with highly sensitive data, failover/rollback and disaster recovery
 - **Virtual Private Snowflake (VPS)** oferring the highest level of security and is isolated from all other Snowflake accounts
+### Snowflakes Three-Tier Architecture
+Snowflake consists of three architectural layers:
+- **Cloud Services Layer** which looks after the overall management of the Snowflake account, user authentication, metadata and infrastructure management. It manages query planning, optimisation and query pruning
+- **Query Processing Layer** managing all query execution. Compute is elastic so can scale up and down and is controlled via Virtual Warehouse (CPU & RAM)
+- **Database Storage Layer** which manages and organises your data in its optimaised formats. Data is stored in micro-partitions up to 50-500MB based on a clustering key
 ## Tools and Interfaces
-
-
-
+Snowflake has a variety of different interfaces:
+- **Classic Web UI** a browser based web interface
+- **Snowsight** is the successor to the classic web ui with increased features with the ability to create data visualisations and analyse data
+- **Snowpark** allows data  scientists and engineers to interact with your data using Scala, java or Python
+- **Workspaces** provides a developer experience for managing code assests with GIT integration
+- **Notebooks** built in Jupiter and Anaconda notebooks and allows users to swith between SQL, Python and Markdown
+- **Streamlit** an open source python based tool for creating interactive web apps
+- **SnowSQL** is Snowflakes command line terminal based client for database operations
+- **Snowflake CLI** is an open source command line interface to streamline workflows, provide some automation or portabiloity across platofms
 ## Data Sharing
+- Data can be shared instantly with consumers via **shares** without any data movement. There are two main types of account for sharing:
+- **Data Providers** makes data available to other Snowflake accounts
+- **Data Consumer** obtains read only data fromm the data provider
 
 
-
+The data marketplace allows you to create and host your own data share securely to select members
 ## Snowflake Partner Ecosystem
-
-
+Your Snowflake environment can be enhanced by partnering it with other data sources and technologies.
+- Examples include data integration, transformation, business intelligence, security and governance, and machine learning
+- **Cloud Partners** are those that have developed products that work well with Snowflake via the partner ecosystem
+- You can access these technologies via the **Partner Connect Portal**
