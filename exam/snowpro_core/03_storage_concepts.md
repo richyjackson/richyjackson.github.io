@@ -1,4 +1,14 @@
 # 3 Storage Concepts
+
+## Table of Contents
+- [Row-Orientated Databases](#row-orientated-databases)
+- [Column-Orientated Databases](#column-orientated-databases)
+- [Micro-partitions](#micro-partitions)
+- [Data Clustering](#data-clustering)
+- [Storage Layer](#storage-layer)
+  - [Storage Lifecycle Policies](#storage-lifecycle-policies)
+  - [Monitoring Storage Useage](#monitoring-storage-useage)
+
 ## Row-Orientated Databases
 - Use OLTP which read and write complete records and handle dml operations efficiently
 - Less efficient for analytical workloads, querying just one column requires a read of the entire rows data
@@ -28,7 +38,7 @@ Snowflake elimiates unnecessary data during queries
 - A clustering key consisting of one or more columns guide Snowflake for locating related data within the same micro-partition
 - By default data is clustered in order of arrival
 - Data can be manually clustered using ```CREATE OR ALTER TABLE Sales CLUSTER BY (Order_Id);```
-- Manual clustering should only be considered for very large tables which show poor performance, query patterns which consistently filter by set columns, join operatons using a set key or range queries across predicatable column ranges
+- Manual clustering should only be considered for very large tables which show poor performance, query patterns which consistently filter by set columns, join operatons using a set key or range querie[...]
 - To automatically ask Snowflake to recluster your data use ``ALTER TABLE Sales RESUME RECLUSTER``
 - Introducing too many columns in a cluster key can reduce performance
 ## Storage Layer
