@@ -51,8 +51,16 @@ UDFs can be created using multiple languages:
 - **Python** - for data science, mmachine learning and advanced analytics
 - **Scala** - through Snowpark for functional programming capabilities and and integration with big data processing networks
 ## External Functions
-
-
+- Allow your SQL queries tap into external cloud services, APIs and custom applications
+Examples include:
+- Integration with mapping services to convert addresses to coordinates
+- Enhancing your data with additional information from external databases
+- Pushing data to external systems
+> Data is sent via HTTPS to your external service. Snowflake waits for the external services to process and return results so it can be incoporated within your data. This means a function can be added to your SQL code inline.
+- External functions can impact performance; best to use when significant value is added
+- The function must be able to handle potentially large data volumes
+- Security happens over HTTPS and you control the authorisation and authentication
+- You should plan for network issues, timeoluts or service failures
 ## Stored Procedures
 
 
