@@ -32,8 +32,10 @@ CREATE TABLE Sales_Backup LIKE Sales;
 CREATE TABLE Sales_Backup CLONE Sales;
 ```
 ## Types of Views
-
-
+- **Non-materialised views** - Simplifies complex queries for users. Alows change to underlying table structures without breaking user queries. Allow embedded calculations and transformation
+- **Secure views** - View definition hidden from users preventing underlying logic being uncovered. Query performance impacted
+- **Materalized Views** - Data precalculated and stored improving performance. There are restrictions on joins, UDFs and window functions. For frequently accessed results that dont change often or signigicant aggregations
+- **Semantic Views** - Allows you to securely describe your data in business terms, with business metrics, entities and their relationships. Previously only available via YAML files stored on external stages, they are no encorporated as a schema level object. They support auditing, time travel, replication, RBAC & dbt pipelines
 ## Stage types
 
 
