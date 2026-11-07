@@ -136,9 +136,9 @@ REVOKE CREATE TABLE, CREATE VIEW ON SCHEMA sales.staging FROM role
 #### Show Grants
 Show grants commands list all privileges explicitly granted to roles, users and shares
 - **SHOW GRANTS** the same as SHOW GRANTS TO USER <current-user>
-- **SHOW GRANTS ON ACCOUNT / <object-type> / <object-name>** ACCOUNT lists all account level privileges
+- **SHOW GRANTS ON ACCOUNT / object-type / object-name**
 - **SHOW GRANTS TO ROLE / USER / SHARE**
-- **SHOW GRANTS OF ROLE / SHARE** Role lists all users and roles to which the role has been granted
+- **SHOW GRANTS OF ROLE / SHARE** role lists all users and roles to which the role has been granted
 - **SHOW FUTURE GRANTS IN SCHEMA / DATABASE** for new objects or databases granted to a role
 #### Snowsight Admin
 - An interface for management tasks, useage monitoring, warehouse admin, user management and account configuration
