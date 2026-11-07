@@ -54,7 +54,25 @@ TRIGGERS
 ALTER ACCOUNT SET RESOURCE_MONITOR = MONTHLY_ACCOUNT_BUDGET;
 ```
 ## Access Control
+### Access Control Framework
+Snowflake uses three established models for access control:
+- **Discretionary Access Control (DAC)** each database object has a designated owner who possesses authority to grant access privileges to that object
+- **Role-based Access Control (RBAC)** access privileges are assigned to roles, which are assigned to users creating a security hierarchy
+- **User-based Access Control (UBAC)** is more flexible than RBAC and is for specific, temporary or limited scope access
+### Objects
+- Privileges exist on objects that can be granted to roles, users are assigned to roles
+### Roles
+- Snowflake controls who can access objects, what operations can be performaed and who can create or alter access control policies
 
+There are 5 pre-defined system roles, custom roles can be created as required:
+- **ORGADMIN** for organisation level tasks such as managing Snowflake accounts and organisation level useage information
+- **ACCOUNTADMIN** the most powerful role; allowing you to administer your account & view credit & billing. Access should be limited. It is a parent of SYSADMIN & SECURITYADMIN
+- **SYSADMIN** can create warehouses, databases and all objects within the database
+- **SECURITYADMIN** for management of granting or revoking privileges to roles, it is a parent of USERADMIN
+- **USERADMIN** for creating roles, users and managing privileges assigned to them
+- **PUBLIC** the default role for users allowing them to log in and view basic information
+- **CUSTOM** for custom roles, the recommendation is the highest role in the hierarchy can manage all warehouses, databases and objects whilst maintaining the existing SECURITYADMIN & ACCOUNTADMIN roles
+### Access Control Privileges
 
 ## Security Features
 
