@@ -148,7 +148,22 @@ Show grants commands list all privileges explicitly granted to roles, users and 
 - **SYSADMIN** can also access Trust Center, manage virtual warehouses, budgets, and resource monitors
 - **ACCOUNTADMIN / ORGADMIN** can also view cost and consumption metrics and view query history
 ## Security Features
-
+- MFA is available across all editions by default
+- A human user must authenticate via two methods, a log in and a notification sent to a mobile
+- Snowflake supports authentication via a passkey, authenticator app or with Duo
+- MFA is also supported by SnowCLI, SnowSQL, JDBC, ODBC & Python
+### User Types
+```sql
+CREATE OR REPLACE USER <<USER_NAME>> TYPE = <<USER_TYPE>>
+```
+- **Human users** (TYPE = PERSON or NULL) for interactive logins and subject to MFA
+- **Service users** (TYPE = SERVICE) for access by systems or automated processes. Cannot use passwords and are MFA exempt. Connection is via OAuth or key pair authentication using public-private key cryptography eliminating the need to store passwords
+### Data Encryption
+- Data encrypted at rest and in transit by default including data held in internal stages
+- Data held in external stages can be optionally encrypted but data is then encrypted during transit to Snowflake
+### Network-level Security
+- By default any device can access the log in screen
+- Security can be added at the network level
 
 ## Data Security and Management Capabilities
 
