@@ -37,10 +37,8 @@ CREATE TABLE Sales_Backup CLONE Sales;
 - **Materalized Views** - Data precalculated and stored improving performance. There are restrictions on joins, UDFs and window functions. For frequently accessed results that dont change often or signigicant aggregations
 - **Semantic Views** - Allows you to securely describe your data in business terms, with business metrics, entities and their relationships. Previously only available via YAML files stored on external stages, they are no encorporated as a schema level object. They support auditing, time travel, replication, RBAC & dbt pipelines
 ## Stage types
-
-
+- Used for loading and unloading your file data using internal stages (held withing Snowflake) or external stages (held in external storage locations such as Azure Blob Storage)
 ## User Defined Functions (UDFs)
-
 
 
 ## External Functions
