@@ -76,7 +76,7 @@ They support multiple languages including:
 
 
 ## Data Types
-- All standard data types supported including: Integer, Float, Decimal, Varchar, Char, Text, Date, Time, Timmestamp, Boolean
+- All standard data types supported including: Integer, Float, Decimal, Varchar, Char, Text, Date, Time, Timestamp, Boolean
 - Care should be taken when converting between types to avoid data loss
 - ``GEOGRAPHY`` is used for identifying distances between points, determining if points fall within regions and for geospatial queries and joins. They support GeoJSON, WKT & WKB formats
 - ``VARIANT`` supports JSON, Avro, Parquet, ORC, and XML allowing you to easily navigate and query SQL with a max 128MB limit per column
