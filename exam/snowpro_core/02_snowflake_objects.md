@@ -1,4 +1,13 @@
 # 2 Snowflake Objects
+## Table of Contents
+- [Table Types](#table-types)
+- [Different ways to create tables](#different-ways-to-create-tables)
+- [Types of Views](#types-of-views)
+- [Stage types](#stage-types)
+- [User Defined Functions (UDFs)](#user-defined-functions-udfs)
+- [External Functions](#external-functions)
+- [Stored Procedures](#stored-procedures)
+- [Data Types](#data-types)
 ## Table Types
 There are 9 table types in Snowflake
 
