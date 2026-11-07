@@ -45,12 +45,11 @@ Provide custom logic for reuse across applications and queries
 
 
 UDFs can be created using multiple languages:
-- **SQL** for calculations,  data transformations and integration with your queries
+- **SQL** for database operations, calculations,  data transformations and integration with your queries
 - **Javascript** - for control flow including branching, looping and exception handling
-- **Java** - providing access to the entire java ecosystem for complex operations
+- **Java** - providing access to the entire java ecosystem for complex operations and enterprise integration
 - **Python** - for data science, mmachine learning and advanced analytics
-- **Scala** - throiugh Snowpark for 
-
+- **Scala** - through Snowpark for functional programming capabilities and and integration with big data processing networks
 ## External Functions
 
 
