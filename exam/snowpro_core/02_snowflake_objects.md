@@ -62,7 +62,17 @@ Examples include:
 - Security happens over HTTPS and you control the authorisation and authentication
 - You should plan for network issues, timeoluts or service failures
 ## Stored Procedures
+Serve complex logic, encapsulating code in multi-step processes:
+- They include Error handling, Dynamic SQL, Control Flow, Transaction Management & Variables
+- Can orcestrate pipelines for data loading, transformation and validation. Automate administrative tasks and validations 
 
+
+They support multiple languages including:
+- **Snowflake Scription (SQL)** an extended library of SQL features
+- **Javascript** for complex transformations and rich libraries
+- **Python** (now available with Snowpark) for data science, advanced analytics and machine learning
+- **Java** (via Snowpark) providing enterprise grade capabilities and integration with Java based systems and libraries
+- **Scala** for functional programming and integration with big data processing frameworks
 
 
 ## Data Types
