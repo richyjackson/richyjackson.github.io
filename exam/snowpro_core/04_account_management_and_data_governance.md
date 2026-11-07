@@ -25,9 +25,34 @@ There are several schemas:
 - It now includes detail about masking policies references, tracks DDL operations, query relationships and stored procedures and column lineage
 - It will show access control privilege detail about grants to a role and grants to a user 
 #### Account Identifiers
+- Distinguishes between Snowflake instances
+- Available via Classic Web UI, Snowsight, SnowSQL and data sharing / database replication
+- It is available in the Snowflake URL: <account_identifier>.snowflakecomputing.com
+#### Organization
+- An organisation links all your Snowflake accounts
+- If you have an organization, the org name is prefixed to your account identifier
+#### Managing Costs
+- Snowflake has three main categories for costs, compute, data storage and data transfer
+- In Snowsight go to Admin > Cost Management > Account overview where costs and cost insights are displayed
+- For more detailed information use information_schema or account_usage views
+- If an organisation is set up, the organisatoiomn view shows detail across all accounts
+- Object tagging can be used to identify and group costs associated with a particular process or department
+- Resource monitors restrict credit useage to avoid overspend
+- Costs are mostly attributed to the running of virtual warehouses which charge acfcording to size and the length of time the warehouse was up and running
+```sql
+USE ROLE ACCOUNTADMIN;
 
+CREATE RESOURCE MONITOR MONTHLY_ACCOUNT_BUDGET WITH
+  CREDIT_QUOTA  = 1000
+  FREQUENCY   = MONTHLY
+  START_TIMESTAMP = IMMEDIATELY
+TRIGGERS
+  ON 90 PERCENT DO NOTIFY
+  ON 95 PERCENT DO SUSPEND
+  ON 99 PERCENT DO SUSPEND_IMMEDIATE;
 
-
+ALTER ACCOUNT SET RESOURCE_MONITOR = MONTHLY_ACCOUNT_BUDGET;
+```
 ## Access Control
 
 
