@@ -39,7 +39,17 @@ CREATE TABLE Sales_Backup CLONE Sales;
 ## Stage types
 - Used for loading and unloading your file data using internal stages (held withing Snowflake) or external stages (held in external storage locations such as Azure Blob Storage)
 ## User Defined Functions (UDFs)
+Provide custom logic for reuse across applications and queries
+- **Scalar** functions return one output value
+- **Tabular** functions return a table
 
+
+UDFs can be created using multiple languages:
+- **SQL** for calculations,  data transformations and integration with your queries
+- **Javascript** - for control flow including branching, looping and exception handling
+- **Java** - providing access to the entire java ecosystem for complex operations
+- **Python** - for data science, mmachine learning and advanced analytics
+- **Scala** - throiugh Snowpark for 
 
 ## External Functions
 
