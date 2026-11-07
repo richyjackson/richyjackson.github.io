@@ -2,7 +2,7 @@
 ## Managing Snowflake Accounts
 #### The Snowflake Database
 - The Snowflake database is a central hub for metadata and usage analytics
-- It is automatically imported from a share named ACCOUNT_USAGE when the account is provisioned
+- It is automatically imported from a share named ``ACCOUNT_USAGE`` when the account is provisioned
 
 There are several schemas:
 - **ACCOUNT_USAGE** for object metadata and historical data for 1 year across the entire Snowflake account. There is a latency of 35 mins to 3 hours
@@ -85,8 +85,68 @@ There are 5 pre-defined system roles, custom roles can be created as required:
 - **USAGE** enables using a schema
 - **CREATE TABLE** create a new table in a schema, including cloning
 #### Granting Privileges
+- A role hierarchy is created where roles inherit the abilities of other roles
+```sql
+USE ROLE SECURITYADMIN;
 
+CREATE ROLE DBA;
 
+CREATE ROLE Analyst;
+
+CREATE ROLE Developer;
+
+GRANT ROLE Analyst TO ROLE Developer; -- Developer has privileges of Analyst
+
+GRANT ROLE Developer TO ROLE DBA; -- DBA has privileges of Developer
+```
+Privileges are then assigned to the roles:
+```sql
+GRANT USAGE ON WAREHOUSE main_wh TO role analyst;
+
+GRANT USAGE ON DATABASE sales TO role analyst;
+
+GRANT USAGE ON SCHEMA sales.staging TO role analyst;
+
+GRANT CREATE TABLE, CREATE VIEW ON SCHEMA sales.staging TO role developer
+
+GRANT OPERATE ON WAREHOUSE main_wh TO ROLE DBA;
+
+GRANT CREATE STAGE ON SCHEMA sales.staging TO ROLE DBA;
+```
+#### Future Grants
+- Grants only apply to existing objects not future ones, if SYSADMIN created a table, it would not have privileges to it
+- To ensure grants are provided for future objects use: ```GRANT INSERT ON FUTURE TABLES IN SCHEMA sales.staging TO role```
+#### Grant Roles to Users
+```sql
+USE ROLE USERADMIN;
+CREATE USER user_1;
+CREATE USER user_2;
+CREATE USER user_3;
+
+GRANT ROLE DBA TO USER user_1;
+GRANT ROLE developer TO USER user_2;
+GRANT ROLE analyst TO USER user_3;
+```
+#### Revoking Grants
+- Following RBAC principles, priviliges are granted and revoked at role level
+```sql
+REVOKE CREATE TABLE, CREATE VIEW ON SCHEMA sales.staging FROM role
+```
+- When a role creates an object it automatically gets OWNERSHIP privilege, it cannot be revoked but transferred using ```GRANT OWNERSHIP```
+#### Show Grants
+Show grants commands list all privileges explicitly granted to roles, users and shares
+- **SHOW GRANTS** the same as SHOW GRANTS TO USER <current-user>
+- **SHOW GRANTS ON ACCOUNT / <object-type> / <object-name>** ACCOUNT lists all account level privileges
+- **SHOW GRANTS TO ROLE / USER / SHARE**
+- **SHOW GRANTS OF ROLE / SHARE** Role lists all users and roles to which the role has been granted
+- **SHOW FUTURE GRANTS IN SCHEMA / DATABASE** for new objects or databases granted to a role
+#### Snowsight Admin
+- An interface for management tasks, useage monitoring, warehouse admin, user management and account configuration
+#### Role-based acces to Admin functions
+- Content within the Admin section is controlled by your role
+- **SECURITYADMIN** roles can see and manage users & roles
+- **SYSADMIN** can also access Trust Center, manage virtual warehouses, budgets, and resource monitors
+- **ACCOUNTADMIN / ORGADMIN** can also view cost and consumption metrics and view query history
 ## Security Features
 
 
