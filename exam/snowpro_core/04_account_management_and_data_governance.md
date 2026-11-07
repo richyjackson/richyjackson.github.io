@@ -73,6 +73,19 @@ There are 5 pre-defined system roles, custom roles can be created as required:
 - **PUBLIC** the default role for users allowing them to log in and view basic information
 - **CUSTOM** for custom roles, the recommendation is the highest role in the hierarchy can manage all warehouses, databases and objects whilst maintaining the existing SECURITYADMIN & ACCOUNTADMIN roles
 ### Access Control Privileges
+- Privileges are granted to roles, roles to users, to operations a user can perform on an object
+#### Warehouse Privileges
+- **MODIFY** change the size and configuration settings of the virtual warehouse
+- **OPERATE** allows the role to start, stop or suspend a virtual warehouse
+- **USAGE** use the available compute resources in the warehouse
+- **OWNERSHIP** grants full control of the warehouse (only 1 role can hold this privilege at a time)
+- **MONITOR** allows viewing current and past queries on the warehouse
+#### Schema Privileges
+- **MODIFY** alter any settings of a schema
+- **USAGE** enables using a schema
+- **CREATE TABLE** create a new table in a schema, including cloning
+#### Granting Privileges
+
 
 ## Security Features
 
