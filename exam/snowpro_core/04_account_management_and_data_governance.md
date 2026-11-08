@@ -168,8 +168,35 @@ CREATE OR REPLACE USER <<USER_NAME>> TYPE = <<USER_TYPE>>
 - **Network Policies** control who can connect to Snowflake using a network rule
 - **Federated Authentication and Single Sign On** authorisation is managed by an external service (identity provider) rather than Snowflake such as Azure Active Directory or Okta. This allows for Single Sign On
 ## Data Security and Management Capabilities
+### Row-level Security
+- For Enterprise Edition and above
+- Implemented using row-access policies allowing you to secure data at an individual row level
+- You define a policy (and optionally define a mapping table), apply the  policy to one of more tables and query the data
 
+**First create the policy**
+```sql
+CREATE OR REPLACE ROW ACCESS POLICY SALES_TERRITORY AS
+(TERRITORY STRING) RETURNS BOOLEAN ->
+  CASE
+    WHEN 'SALES_MANAGER' = CURRENT_ROLE() THEN TRUE
+    WHEN 'SALES_EMEA' = CURRENT_ROLE() AND TERRITORY = 'EMEA' THEN TRUE
+    WHEN 'SALES_APAC' = CURRENT_ROLE() AND TERRITORY = 'APAC' THEN TRUE
+    ELSE FALSE END;
+```
+**Next apply the policy to the table**
+```sql
+ALTER TABLE SALES ADD ROW ACCESS POLICY SALES_TERRITORY ON (TERRITORY);
+```
+- If you need to update a row access policy you must use GET_DDL or DESCRIBE ROW ACCESS POLICY
 
+**List objects with policies***
+```sql
+select * from table (mydb.information_schema.policy_references (policy_name=>'<policy_name>'));
+```
+***Check if there is a policy attached to a specific object***
+```sql
+select * from table (mydb.information_schema.policy_references (ref_entity_name => '<name>', ref_entity_domain => '<domain>'));
+```
 ## Sharing Queries or Folders
 
 
