@@ -164,7 +164,9 @@ CREATE OR REPLACE USER <<USER_NAME>> TYPE = <<USER_TYPE>>
 ### Network-level Security
 - By default any device can access the log in screen
 - Security can be added at the network level
-
+- **Network Rules** are schema level objects that are the building blocks of **Network Policies**. They include network identifiers, IP addresses, end points (locations) and can be used by multiple policies
+- **Network Policies** control who can connect to Snowflake using a network rule
+- **Federated Authentication and Single Sign On** authorisation is managed by an external service (identity provider) rather than Snowflake such as Azure Active Directory or Okta. This allows for Single Sign On
 ## Data Security and Management Capabilities
 
 
