@@ -126,7 +126,11 @@ get @~/myfiles file:///tmp/data/;
 - You pay using snowflake credits under a warehouse called Snowpipe
 - Or essentially runs the copy into commands continuously
 ```sql
-create pipe mypipe as copy into mytable from @mystage; create pipe mypipe2 as copy into mytable(c1, c2) from (select $5, $4 from @mystage); create pipe mypipe_s3 auto_ingest = true aws_sns_topic [...]
+create pipe mypipe as copy into mytable from @mystage;
+
+create pipe mypipe2 as copy into mytable(c1, c2) from (select $5, $4 from @mystage);
+
+create pipe mypipe_s3 auto_ingest = true aws_sns_topic [...]
 ```
 - Metadata / History is held for 64 days via `COPY INTO` commands, with Snowpipe it is 14
 - Account Admin or MONITOR USEAGE users can access history via Snowsight or the `PIPE_USEAGE_HISTORY` table function
