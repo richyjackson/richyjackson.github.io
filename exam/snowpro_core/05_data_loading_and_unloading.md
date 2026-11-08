@@ -168,7 +168,7 @@ ERROR_ON_COLUMN_COUNT_MISMATCH = TRUE;
 - `SKIP_FILE` - Ignores bad files only (Snowpipe default)
 - `ABORT_STATEMENT` - Terminate the whole load process (COPY INTO default)
 ## Unloading Data
-- Data is loaded from a table to a CSV, Parquet or Avro file using a COPY INTO command to an internal or external stage
+- Data is loaded from a table to a CSV, JSON or Avro file using a COPY INTO command to an internal or external stage
 - A SQL statement can be used to transform the data from multiple sources
 - The default option is to create a single file, for multiple files use option SINGLE = FALSE
 - Use MAX_FILE_SIZE to specify file sizes. The max file size Google Cloud, Amazon S3 & Azure support is 5GB
