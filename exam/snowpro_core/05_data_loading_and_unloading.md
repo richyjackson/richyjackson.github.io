@@ -145,7 +145,11 @@ create pipe mypipe_s3 auto_ingest = true aws_sns_topic [...]
 - Snowflake identifies which data has changed and automatically refreshes it on schedule
 - Refresh is controlled via a lag
 ```sql
-CREATE OR REPLACE DYNAMIC TABLE customer_metrics TARGET_LAG = '5 minutes' WAREHOUSE = compute_wh AS SELECT customer_id, COUNT(*) as transaction_count, SUM(amount) as total_spent, AVG(amount) as a[...]
+CREATE OR REPLACE DYNAMIC TABLE customer_metrics
+TARGET_LAG = '5 minutes'
+WAREHOUSE = compute_wh AS
+
+  SELECT customer_id, COUNT(*) as transaction_count, SUM(amount) as total_spent, AVG(amount) as a[...]
 ```
 - Dynamic Tables avoid the need for complex pipelines
 - They allow transformation across multiple tables
