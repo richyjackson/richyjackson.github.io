@@ -197,6 +197,45 @@ select * from table (mydb.information_schema.policy_references (policy_name=>'<p
 ```sql
 select * from table (mydb.information_schema.policy_references (ref_entity_name => '<name>', ref_entity_domain => '<domain>'));
 ```
+### Column-level Security
+Allows you to create a masking policy within a table or view and comes as:
+1) **Dynamic data masking** obfuscating contents of data
+2) **External tokenization** allows data exchange  for a token outside of Snowflake
+#### Dynamic data masking
+- A masking policy is a schema level database object applied at query execution time
+
+**Create the masking policy**
+```sql
+CREATE OR REPLACE MASKING POLICY EMAIL_MASK AS
+  (VAL STRING) RETURNS STRING ->
+    CASE
+      WHEN CURRENT_ROLE() <> ('SENSITIVE_ALLOWED_ROLE') THEN 'XXX-XX-XXXX' ELSE VAL
+    END;
+```
+**Apply the policy to a column**
+```sql
+ALTER VIEW PRESENTATION.CUSTOMER_LAST_ORDER_DATE
+  MODIFY COLUMN CUSTOMER_EMAIL SET MASKING POLICY EMAIL_MASK;
+```
+**Tag-based masking Policies**
+- A masking policy is applied to a TAG, each column is then attached to the tag which applies the policy
+- A single tag can support multiple masking policies eg. PII_DATA
+#### External tokenization
+- The masking policy makes a call to the external function so that it can operation outside of Snowflake
+- Example could include exposing medical data externally but hiding a patient id. The patient remains anonyumous but analysis can be continued
+- Does not work with data sharing, however Dynamic Data Masking does
+### Object Tagging
+- Tags allow you to track sensitive data across your environment
+- They can be applies to warehouses, schemas, tables, streams & views etc.. allowing you to categories your artifacts
+- Available on enterprise edition
+- Tags allow tag inheritance
+### Secure Views
+- Prevents unauthroised access to underlying table structures
+- Has performance trade offs
+- Use where there is a business need, not for convenience
+### Snowflake Horizon
+- Provides a unified interface for many security, governance and data management capabilities
+- It provides interfaces for access history, data quality monitoring, data lineage & object tagging
+- It centralises the trust centre for security posture against industry benchmmarks
 ## Sharing Queries or Folders
-
-
+- Queries can be shared in Snowsight through Worksheets and selecting Share in the top right corner
