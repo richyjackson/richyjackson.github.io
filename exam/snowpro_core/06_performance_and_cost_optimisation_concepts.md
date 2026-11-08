@@ -152,7 +152,7 @@ ALTER WAREHOUSE my_wh
 ## Resource monitors
 - Limits cost consumption
 - Configurable using the ACCOUNTADMIN role
-- **Frequency** usually configured monthly inline with Snowflakes builling cycle however can go to daily
+- **Frequency** usually configured monthly inline with Snowflakes billing cycle however can go to daily
 - **Trigger** when the threshold is met the following actions can be considered:
     - `NOTIFY` You are notified only (provided notifications are configured in the webUI)
     - `SUSPEND` New queries suspended, active remain which may result in the threshold being breached
