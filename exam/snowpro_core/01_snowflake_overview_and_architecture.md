@@ -45,7 +45,7 @@ Snowflake breaks away from traditional architecture constrainted by hardware, ne
 - **Standard** the basic level offering
 - **Enterprise** for large scale enterprise clients including data protection and performance features
 - **Business Critical** add enhanced security features for organisations with highly sensitive data, failover/rollback and disaster recovery
-- **Virtual Private Snowflake (VPS)** oferring the highest level of security and is isolated from all other Snowflake accounts
+- **Virtual Private Snowflake (VPS)** offering the highest level of security and is isolated from all other Snowflake accounts
 ### Snowflakes Three-Tier Architecture
 Snowflake consists of three architectural layers:
 - **Cloud Services Layer** which looks after the overall management of the Snowflake account, user authentication, metadata and infrastructure management. It manages query planning, optimisation and query pruning
