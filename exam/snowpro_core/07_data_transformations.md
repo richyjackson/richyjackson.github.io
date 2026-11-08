@@ -26,7 +26,7 @@
 ## Working with Relational Data
 ### User Defined Functions (UDFs)
 - UDFs calculate and return a value or set of values
-- Supported in Java, Python, JavaScript and SQL
+- Supported in Java, Python, JavaScript, Scala and SQL
 - **Scalar functions** return one output row per input row
 - **Table functions** return zero, one or many rows
 - Java & Python UDFs support source files containing the code for the UDFs
