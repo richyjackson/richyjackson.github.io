@@ -42,13 +42,13 @@ Snowflake breaks away from traditional architecture constrainted by hardware, ne
 - **Snowflake Horizon** integrates compliance, security, privacy and access controls
 - **Snowflake Cortex** brings machine learning and AI applications to your data
 ### Snowflake Editions
-- **Standard** rhe basic level offering
+- **Standard** the basic level offering
 - **Enterprise** for large scale enterprise clients including data protection and performance features
 - **Business Critical** add enhanced security features for organisations with highly sensitive data, failover/rollback and disaster recovery
 - **Virtual Private Snowflake (VPS)** oferring the highest level of security and is isolated from all other Snowflake accounts
 ### Snowflakes Three-Tier Architecture
 Snowflake consists of three architectural layers:
-- **Cloud Services Layer** which looks after the overall management of the Snowflake account, user authentication, metadata and infrastructure management. It manages query planning, optimisation and q[...]
+- **Cloud Services Layer** which looks after the overall management of the Snowflake account, user authentication, metadata and infrastructure management. It manages query planning, optimisation and query pruning
 - **Query Processing Layer** managing all query execution. Compute is elastic so can scale up and down and is controlled via Virtual Warehouse (CPU & RAM)
 - **Database Storage Layer** which manages and organises your data in its optimaised formats. Data is stored in micro-partitions up to 50-500MB based on a clustering key
 ## Tools and Interfaces
