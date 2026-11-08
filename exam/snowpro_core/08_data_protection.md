@@ -18,7 +18,7 @@
 - It takes care of these node failures seemlessly without need for user intervention
 ### High Availability
 - Snowflake provides **failover** replicating your data acorss three availability zones without additional cost
-- You can instruct Snowflake to replicate changes automatically between databases withyout the need to develop or configure ETL jobs
+- You can instruct Snowflake to replicate changes automatically between databases without the need to develop or configure ETL jobs
 - If Google had a major outage you could failover to another service
 ### Data Encryption
 - Data at rest within Snowflake (including internal stages) is always encrypted by default
