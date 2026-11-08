@@ -60,12 +60,11 @@ Snowflake has a variety of different interfaces:
 - **Notebooks** built in Jupiter and Anaconda notebooks and allows users to swith between SQL, Python and Markdown
 - **Streamlit** an open source python based tool for creating interactive web apps
 - **SnowSQL** is Snowflakes command line terminal based client for database operations
-- **Snowflake CLI** is an open source command line interface to streamline workflows, provide some automation or portabiloity across platofms
+- **Snowflake CLI** is an open source command line interface to streamline workflows, provide some automation or portabiloity across platforms
 ## Data Sharing
 - Data can be shared instantly with consumers via **shares** without any data movement. There are two main types of account for sharing:
 - **Data Providers** makes data available to other Snowflake accounts
 - **Data Consumer** obtains read only data fromm the data provider
-
 
 The data marketplace allows you to create and host your own data share securely to select members
 ## Snowflake Partner Ecosystem
