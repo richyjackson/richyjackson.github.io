@@ -46,6 +46,8 @@ Snowflake breaks away from traditional architecture constrainted by hardware, ne
 - **Enterprise** for large scale enterprise clients including data protection and performance features
 - **Business Critical** add enhanced security features for organisations with highly sensitive data, failover/rollback and disaster recovery
 - **Virtual Private Snowflake (VPS)** offering the highest level of security and is isolated from all other Snowflake accounts
+
+Business Critical and VPS Snowflake editions provide support for Private Connectivity to the Snowflake Service using AWS PrivateLink, Azure Private Link, or Google Cloud Private Service
 ### Snowflakes Three-Tier Architecture
 Snowflake consists of three architectural layers:
 - **Cloud Services Layer** which looks after the overall management of the Snowflake account, user authentication, metadata, its storage and infrastructure management. It manages query planning, optimisation and query pruning
@@ -72,3 +74,4 @@ Your Snowflake environment can be enhanced by partnering it with other data sour
 - Examples include data integration, transformation, business intelligence, security and governance, and machine learning
 - **Cloud Partners** are those that have developed products that work well with Snowflake via the partner ecosystem
 - You can access these technologies via the **Partner Connect Portal**
+- Examples include, Alation (data cataloging), Data Robot (AI Cloud Platform)
