@@ -48,7 +48,7 @@ Snowflake breaks away from traditional architecture constrainted by hardware, ne
 - **Virtual Private Snowflake (VPS)** offering the highest level of security and is isolated from all other Snowflake accounts
 ### Snowflakes Three-Tier Architecture
 Snowflake consists of three architectural layers:
-- **Cloud Services Layer** which looks after the overall management of the Snowflake account, user authentication, metadata and infrastructure management. It manages query planning, optimisation and query pruning
+- **Cloud Services Layer** which looks after the overall management of the Snowflake account, user authentication, metadata, its storage and infrastructure management. It manages query planning, optimisation and query pruning
 - **Query Processing Layer** managing all query execution. Compute is elastic so can scale up and down and is controlled via Virtual Warehouse (CPU & RAM)
 - **Database Storage Layer** which manages and organises your data in its optimaised formats. Data is stored in micro-partitions up to 50-500MB based on a clustering key
 ## Tools and Interfaces
