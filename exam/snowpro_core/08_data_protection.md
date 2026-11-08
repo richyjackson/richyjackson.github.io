@@ -68,5 +68,5 @@ UNDROP DATABASE SALES_DB;
 ## Underlying Storage Concepts
 - Dropping and truncating tables results in entire copies of data being held in time-travel or fail safe
 - In other cases Snowflake works out which data it needs to store & recover data
-- Sotrage useage = Overall table size vs the number of records modified
+- Storage useage = Overall table size vs the number of records modified
 - See storage used by fail safe by using ACCOUNTADMIN then navigating to Admin - Cost Management -> Consumption
