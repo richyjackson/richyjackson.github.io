@@ -1,9 +1,5 @@
 # SSRS
-
 ## Query Report Server Subscriptions
-
-Source: https://sites.google.com/view/bideveloperwiki/home/query-report-server-subscriptions
-
 ```sql
 SELECT
     @@SERVERNAME [Server],
@@ -30,11 +26,7 @@ FROM
 WHERE
     sub.LastStatus IS NOT NULL
 ```
-
 ## Query Report Server Usage
-
-Source: https://sites.google.com/view/bideveloperwiki/home/query-report-server-useage
-
 ```sql
 SELECT
     cat.ItemID,
@@ -50,11 +42,7 @@ WHERE
     cat.[Type] IN (2,13)
 ORDER BY cat.ItemID
 ```
-
 ## Query Row Level Security
-
-Source: https://sites.google.com/view/bideveloperwiki/home/query-row-level-security
-
 ```sql
 SELECT
     [Name] 'Report', [ModelRoleName] 'Role', [UserName] 'User'
