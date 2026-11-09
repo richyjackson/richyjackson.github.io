@@ -2,8 +2,6 @@
 
 ## General VBA Tips
 
-Source: https://sites.google.com/view/bideveloperwiki/home/vba-tips
-
 ### Extract value from multivalued combo box / drop down
 
 ```vba
