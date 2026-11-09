@@ -23,5 +23,4 @@
 
 ## VBA
 
-[General VBA Tips](/vba-tips.md)
-[IE Automation](/ie-automation.md)
+- [VBA](/vba.md)
