@@ -5,9 +5,7 @@ This site aims to provide simple solutions to complex problems which BI Develope
 - [Remove page breaks from report](https://stevenovoselac.com/2011/04/29/ssrs-report-no-page-breaks-for-you/) (external)
 - [Sharepoint as a data source](ssrs/sharepoint-as-a-data-source.md)
 - [Keep Headers Visible While Scrolling in SSRS](https://www.tutorialgateway.org/keep-headers-visible-while-scrolling-in-ssrs/) (external)
-- [Query Report Server Subscriptions](ssrs/query-report-server-subscriptions.md)
-- [Query Report Server Useage](ssrs/query-report-server-usage.md)
-- [Query Row Level Security](ssrs/query-row-level-security.md)
+- [Query Report Server Queries](ssrs/query-report-server-queries.md)
 
 ## SSIS
 
