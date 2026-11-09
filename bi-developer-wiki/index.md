@@ -1,9 +1,3 @@
-# BI Developer WIKI
-This site aims to provide simple solutions to complex problems which BI Developers often face!
-## SSIS
-
-- [SSIS](/ssis.md)
-
 ## SQL
 
 - [Constraints](/constraints.md)
@@ -31,8 +25,6 @@ This site aims to provide simple solutions to complex problems which BI Develope
 
 [General VBA Tips](/vba-tips.md)
 [IE Automation](/ie-automation.md)
-
-## DAX
 
 - [Creating a calculated table](/creating-a-calculated-table.md)
 - [Create a Single Row Measures Table](/create-a-single-row-measures-table.md)
