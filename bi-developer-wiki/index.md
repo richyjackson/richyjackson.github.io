@@ -23,5 +23,5 @@
 
 ## VBA
 
-[General VBA Tips](bi-developer-wiki/vba-tips.md)
-[IE Automation](bi-developer-wiki/ie-automation.md)
+[General VBA Tips](/vba-tips.md)
+[IE Automation](/ie-automation.md)
