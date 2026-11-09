@@ -158,9 +158,6 @@ ROW("Value 1", value1, "Value 2", value2)
 ```
 
 ## Creating Tables
-
-Source: https://sites.google.com/view/bideveloperwiki/home/creating-tables
-
 ### Create date table from all dates in model
 
 ```dax
