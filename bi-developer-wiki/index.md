@@ -1,15 +1,5 @@
 # BI Developer WIKI
-
 This site aims to provide simple solutions to complex problems which BI Developers often face!
-
-Converted from https://sites.google.com/view/bideveloperwiki/home
-
-## Power BI
-
-- [DAX Tips](power-bi/dax-tips.md)
-- [Many to Many Relationships](power-bi/many-to-many-relationships.md)
-- [Python Custom Visual](power-bi/python-custom-visual.md)
-
 ## SSRS
 
 - [Remove page breaks from report](https://stevenovoselac.com/2011/04/29/ssrs-report-no-page-breaks-for-you/) (external)
