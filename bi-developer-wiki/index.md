@@ -1,12 +1,5 @@
 # BI Developer WIKI
 This site aims to provide simple solutions to complex problems which BI Developers often face!
-## SSRS
-
-- [Remove page breaks from report](https://stevenovoselac.com/2011/04/29/ssrs-report-no-page-breaks-for-you/) (external)
-- [Sharepoint as a data source](ssrs/sharepoint-as-a-data-source.md)
-- [Keep Headers Visible While Scrolling in SSRS](https://www.tutorialgateway.org/keep-headers-visible-while-scrolling-in-ssrs/) (external)
-- [Query Report Server Queries](ssrs/query-report-server-queries.md)
-
 ## SSIS
 
 - [Extract SharePoint Data](ssis/extract-sharepoint-data.md)
