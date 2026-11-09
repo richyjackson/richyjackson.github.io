@@ -28,8 +28,6 @@ End If
 
 ## IE Automation
 
-Source: https://sites.google.com/view/bideveloperwiki/home/ie-automation
-
 Automating Websites through MS Access or Excel in VBA
 
 ### Add Error Handling
