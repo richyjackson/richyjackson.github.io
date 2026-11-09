@@ -2,48 +2,40 @@
 This site aims to provide simple solutions to complex problems which BI Developers often face!
 ## SSIS
 
-- [Extract SharePoint Data](ssis/extract-sharepoint-data.md)
-- [Extract SSIS Environment Variables](ssis/extract-ssis-environment-variables.md)
+- [Extract SharePoint Data](/extract-sharepoint-data.md)
+- [Extract SSIS Environment Variables](/extract-ssis-environment-variables.md)
 
 ## SQL
 
-- [Constraints](sql/constraints.md)
-- [LDAP](sql/ldap.md)
-- [Import XML](sql/import-xml.md)
-- [MERGE](sql/merge.md)
-- [PIVOT](sql/pivot.md)
-- [Query Linked Servers](sql/query-linked-servers.md)
-- [Restore Databases](sql/restore-database.md)
-- [STUFF](sql/stuff.md)
-- [STRINGSPLIT - Cells to Columns](sql/stringsplit.md)
-- [UNPIVOT - Columns to Rows](sql/unpivot.md)
-- [Extract Row Counts For All Tables](sql/row-counts-for-all-tables.md)
-- [Query Size of Databases](sql/query-size-of-databases.md)
-- [Find Object Referred in SP or View code on Server](sql/find-object-references.md)
-- [Find Columns Referred across the server](sql/find-column-references.md)
-- [Find Databases Referred across the server](sql/find-databases-referenced.md)
-- [Dynamic DB Info Queries](sql/db-info-queries.md)
-- [Temporal Tables](sql/temporal-tables.md)
-- [Query Active Directory](sql/query-active-directory.md)
-- [Access data via an API](sql/access-data-via-api.md)
-
-## Python
-
-- [KPI Visual](python/kpi-visual.md)
-
-## DBA
-
-- Restoring Databases (no page on the original site; see [Restore Databases](sql/restore-database.md))
-- Creating Users (no page on the original site)
+- [Constraints](/constraints.md)
+- [LDAP](/ldap.md)
+- [Import XML](/import-xml.md)
+- [MERGE](/merge.md)
+- [PIVOT](/pivot.md)
+- [Query Linked Servers](/query-linked-servers.md)
+- [Restore Databases](/restore-database.md)
+- [STUFF](/stuff.md)
+- [STRINGSPLIT - Cells to Columns](/stringsplit.md)
+- [UNPIVOT - Columns to Rows](/unpivot.md)
+- [Extract Row Counts For All Tables](/row-counts-for-all-tables.md)
+- [Query Size of Databases](/query-size-of-databases.md)
+- [Find Object Referred in SP or View code on Server](/find-object-references.md)
+- [Find Columns Referred across the server](/find-column-references.md)
+- [Find Databases Referred across the server](/find-databases-referenced.md)
+- [Dynamic DB Info Queries](/db-info-queries.md)
+- [Temporal Tables](/temporal-tables.md)
+- [Query Active Directory](/query-active-directory.md)
+- [Access data via an API](/access-data-via-api.md)
+- [Restore Databases](/restore-database.md))
 
 ## VBA
 
-- [General VBA Tips](vba/vba-tips.md)
-- [IE Automation](vba/ie-automation.md)
+[General VBA Tips](/vba-tips.md)
+[IE Automation](/ie-automation.md)
 
 ## DAX
 
-- [Creating a calculated table](dax/creating-a-calculated-table.md)
-- [Create a Single Row Measures Table](dax/create-a-single-row-measures-table.md)
-- [Creating Tables](dax/creating-tables.md)
-- [Using Switch](dax/using-switch.md)
+- [Creating a calculated table](/creating-a-calculated-table.md)
+- [Create a Single Row Measures Table](/create-a-single-row-measures-table.md)
+- [Creating Tables](/creating-tables.md)
+- [Using Switch](/using-switch.md)
