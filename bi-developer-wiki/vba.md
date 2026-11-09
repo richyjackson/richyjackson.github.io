@@ -1,5 +1,18 @@
 # VBA
 
+## Table of Contents
+
+- [General VBA Tips](#general-vba-tips)
+  - [Extract value from multivalued combo box / drop down](#extract-value-from-multivalued-combo-box--drop-down)
+  - [Lookup table or query value](#lookup-table-or-query-value)
+  - [Add a search box to a form](#add-a-search-box-to-a-form)
+- [IE Automation](#ie-automation)
+  - [Add Error Handling](#add-error-handling)
+  - [Launch a web page](#launch-a-web-page)
+  - [Delay actions](#delay-actions)
+  - [Press a button](#press-a-button)
+  - [Give a field a value](#give-a-field-a-value)
+
 ## General VBA Tips
 
 ### Extract value from multivalued combo box / drop down
