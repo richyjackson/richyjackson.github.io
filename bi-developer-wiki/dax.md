@@ -1,9 +1,5 @@
 # DAX
-
 ## Creating a calculated table
-
-Source: https://sites.google.com/view/bideveloperwiki/home/creating-a-calculated-table
-
 ```dax
 P&L Matrix =
 
@@ -149,11 +145,7 @@ P&L Matrix =
 
     )
 ```
-
 ## Create a Single Row Measures Table
-
-Source: https://sites.google.com/view/bideveloperwiki/home/create-a-single-row-measures-table
-
 ```dax
 KPI - Management Fees =
 
