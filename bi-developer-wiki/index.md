@@ -2,8 +2,7 @@
 This site aims to provide simple solutions to complex problems which BI Developers often face!
 ## SSIS
 
-- [Extract SharePoint Data](/extract-sharepoint-data.md)
-- [Extract SSIS Environment Variables](/extract-ssis-environment-variables.md)
+- [SSIS](/ssis.md)
 
 ## SQL
 
