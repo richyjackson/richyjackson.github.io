@@ -26,6 +26,7 @@
 [General VBA Tips](/vba-tips.md)
 [IE Automation](/ie-automation.md)
 
+## DAX
 - [Creating a calculated table](/creating-a-calculated-table.md)
 - [Create a Single Row Measures Table](/create-a-single-row-measures-table.md)
 - [Creating Tables](/creating-tables.md)
