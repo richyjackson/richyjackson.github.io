@@ -1,4 +1,9 @@
 # Power BI
+## Table of contents
+- [DAX Tips](#dax-tips)
+  - [Ranking for Top 10](#ranking-for-top-10)
+- [Many to Many relationships](#many-to-many-relationships)
+- [Python Custom Visual](#python-custom-visual)
 ## DAX Tips
 ### Ranking for Top 10
 
