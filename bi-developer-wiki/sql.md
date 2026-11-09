@@ -1,7 +1,5 @@
 # SQL
 
-A consolidated, alphabetically organized collection of the SQL pages previously listed in the BI Developer Wiki.
-
 ## Table of Contents
 
 - [Access Data via API](#access-data-via-api)
@@ -25,8 +23,6 @@ A consolidated, alphabetically organized collection of the SQL pages previously 
 - [UNPIVOT](#unpivot)
 
 ## Access Data via API
-
-Source: https://sites.google.com/view/bideveloperwiki/home/access-data-via-api-in-sql
 
 ### JSON GET
 
@@ -62,8 +58,6 @@ EXEC sp_OADestroy @Object
 
 ## Constraints
 
-Source: https://sites.google.com/view/bideveloperwiki/home/constraints
-
 ### CHECK constraint
 
 ```sql
@@ -73,8 +67,6 @@ ALTER TABLE [dbo].[projects] CHECK CONSTRAINT [ck_project_end_date]
 ```
 
 ## Dynamic DB Info Queries
-
-Source: https://sites.google.com/view/bideveloperwiki/home/db-info-queries
 
 ### Role Members
 
@@ -239,8 +231,6 @@ SELECT * FROM @results
 
 ## Find Column References on Server
 
-Source: https://sites.google.com/view/bideveloperwiki/home/find-column-references-on-server
-
 Find references to columns in SP or View code through Looping.
 
 ```sql
@@ -295,8 +285,6 @@ PRINT @sql
 
 ## Find Databases Referenced on Server
 
-Source: https://sites.google.com/view/bideveloperwiki/home/find-databases-referenced-on-server
-
 Find references to databases in SP or View code through Looping.
 
 ```sql
@@ -340,8 +328,6 @@ SELECT * FROM @results
 ```
 
 ## Find Object References on Server
-
-Source: https://sites.google.com/view/bideveloperwiki/home/find-object-references-on-server
 
 Find references to objects in SP or View code through Looping.
 
@@ -392,8 +378,6 @@ SELECT @schema + '.' + @table_name table_name, * FROM @results;
 ```
 
 ## Import XML
-
-Source: https://sites.google.com/view/bideveloperwiki/home/import-xml
 
 Importing an XML file into SQL Server.
 
@@ -453,8 +437,6 @@ WITH (
 
 ## LDAP
 
-Source: https://sites.google.com/view/bideveloperwiki/home/ldap
-
 Working with Active Directory via LDAP.
 
 ### Get LDAP User Groups for user
@@ -498,8 +480,6 @@ END
 ```
 
 ## MERGE
-
-Source: https://sites.google.com/view/bideveloperwiki/home/merge
 
 ### Update values, add new ones and delete
 
@@ -564,8 +544,6 @@ WHEN NOT MATCHED BY SOURCE THEN DELETE
 
 ## PIVOT
 
-Source: https://sites.google.com/view/bideveloperwiki/home/pivot
-
 Transpose rows into columns.
 
 ```sql
@@ -587,8 +565,6 @@ FROM
 ```
 
 ## Query Active Directory
-
-Source: https://sites.google.com/view/bideveloperwiki/home/query-active-directory
 
 ### List users in an AD security group
 
@@ -679,15 +655,11 @@ END
 
 ## Query Linked Servers
 
-Source: https://sites.google.com/view/bideveloperwiki/home/query-linked-servers
-
 ```sql
 SELECT * FROM OPENQUERY({linked server name}, '{SQL Query')
 ```
 
 ## Query Size of Databases
-
-Source: https://sites.google.com/view/bideveloperwiki/home/query-size-of-databases
 
 ```sql
 SELECT d.NAME
@@ -701,8 +673,6 @@ ORDER BY d.NAME
 ```
 
 ## Restore Database
-
-Source: https://sites.google.com/view/bideveloperwiki/home/restore-database
 
 Restore databases in code.
 
@@ -719,8 +689,6 @@ NOUNLOAD, REPLACE, STATS = 10
 ```
 
 ## Row Counts for All Tables
-
-Source: https://sites.google.com/view/bideveloperwiki/home/row-counts-for-all-tables
 
 ```sql
 DECLARE @entities AS TABLE ([schema] VARCHAR(100), [table_name] VARCHAR(100), position INT)
@@ -770,8 +738,6 @@ SELECT * FROM dbo.RowCounts
 
 ## STUFF
 
-Source: https://sites.google.com/view/bideveloperwiki/home/stuff
-
 ```sql
 WITH dataset AS (
     SELECT
@@ -811,8 +777,6 @@ FROM
 
 ## STRING_SPLIT
 
-Source: https://sites.google.com/view/bideveloperwiki/home/stringsplit
-
 Transform rows to columns. STRING_SPLIT allows you to transform repeating cell patterns within a cell to rows. For example you can split commas in an address to entries in their individual columns.
 
 ```sql
@@ -846,8 +810,6 @@ FROM
 
 ## Temporal Tables
 
-Source: https://sites.google.com/view/bideveloperwiki/home/temporal-tables
-
 ### Turn a table into a Temporal Table
 
 ```sql
@@ -869,8 +831,6 @@ ALTER TABLE [schema].[table_name] SET (SYSTEM_VERSIONING = OFF);
 ```
 
 ## UNPIVOT
-
-Source: https://sites.google.com/view/bideveloperwiki/home/unpivot
 
 Transpose columns to rows.
 
