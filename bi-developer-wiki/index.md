@@ -20,7 +20,3 @@
 - [Query Active Directory](/query-active-directory.md)
 - [Access data via an API](/access-data-via-api.md)
 - [Restore Databases](/restore-database.md))
-
-## VBA
-
-- [VBA](/vba.md)
