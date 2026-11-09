@@ -1,27 +1,4 @@
 # SQL
-
-## Table of Contents
-
-- [Access Data via API](#access-data-via-api)
-- [Constraints](#constraints)
-- [Dynamic DB Info Queries](#dynamic-db-info-queries)
-- [Find Column References on Server](#find-column-references-on-server)
-- [Find Databases Referenced on Server](#find-databases-referenced-on-server)
-- [Find Object References on Server](#find-object-references-on-server)
-- [Import XML](#import-xml)
-- [LDAP](#ldap)
-- [MERGE](#merge)
-- [PIVOT](#pivot)
-- [Query Active Directory](#query-active-directory)
-- [Query Linked Servers](#query-linked-servers)
-- [Query Size of Databases](#query-size-of-databases)
-- [Restore Database](#restore-database)
-- [Row Counts for All Tables](#row-counts-for-all-tables)
-- [STUFF](#stuff)
-- [STRING_SPLIT](#string_split)
-- [Temporal Tables](#temporal-tables)
-- [UNPIVOT](#unpivot)
-
 ## Access Data via API
 
 ### JSON GET
