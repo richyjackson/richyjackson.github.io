@@ -1,8 +1,8 @@
 # BI Developer Wiki
 
-- [dax](dax.md)
-- [power-bi](power-bi.md)
-- [sql](sql.md)
-- [ssis](ssis.md)
-- [ssrs](ssrs.md)
-- [vba](vba.md)
+- [DAX](dax.md)
+- [Power BI](power-bi.md)
+- [SQL](sql.md)
+- [SSIS](ssis.md)
+- [SSRS](ssrs.md)
+- [VBA](vba.md)
