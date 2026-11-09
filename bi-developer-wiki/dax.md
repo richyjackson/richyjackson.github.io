@@ -1,4 +1,12 @@
 # DAX
+## Table of contents
+- [Creating a calculated table](#creating-a-calculated-table)
+- [Create a Single Row Measures Table](#create-a-single-row-measures-table)
+- [Creating Tables](#creating-tables)
+  - [Create date table from all dates in model](#create-date-table-from-all-dates-in-model)
+  - [Using SUMMARIZE](#using-summarize)
+  - [Using SELECTCOLUMNS](#using-selectcolumns)
+- [Using SWITCH](#using-switch)
 ## Creating a calculated table
 ```dax
 P&L Matrix =
