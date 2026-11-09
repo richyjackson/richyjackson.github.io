@@ -206,8 +206,6 @@ DISTINCT(
 
 ## Using SWITCH
 
-Source: https://sites.google.com/view/bideveloperwiki/home/using-switch
-
 ```dax
 my_column =
 
