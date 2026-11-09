@@ -1,9 +1,5 @@
 # Power BI
-
 ## DAX Tips
-
-Source: https://sites.google.com/view/bideveloperwiki/home/dax-tips
-
 ### Ranking for Top 10
 
 ```dax
@@ -12,10 +8,7 @@ _Rank = RANKX(ALL({GROUP BY FIELD}, CALCULATE(SUM({VALUE FIELD})))
 
 Once in place add to the filters to filter by numbers less than the top values you wish to show e.g. 10.
 
-## Many to Many relationships with Power BI
-
-Source: https://sites.google.com/view/bideveloperwiki/home/many-to-many-relationships-in-power-bi
-
+## Many to Many relationships
 POWER BI DOES NOT SUPPORT MANY TO MANY RELATIONSHIPS
 
 You can however create a bridging table with unique keys between the two sources, allowing you to join the two dataset together.
@@ -25,9 +18,7 @@ You can however create a bridging table with unique keys between the two sources
 - This is useful for allowing Many to Many relationships work in Power BI.
 
 ## Python Custom Visual
-
-Source: https://sites.google.com/view/bideveloperwiki/home/python-custom-visual
-
+Provides a KPI visual
 ```python
 # Import necessary libraries
 
